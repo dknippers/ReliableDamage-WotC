@@ -73,10 +73,7 @@ private function SetDamageRangeMessage()
 	{
 		sMinDamage = string(Round(StandardAim_RD.MinDamage));
 		sMaxDamage = string(Round(StandardAim_RD.MaxDamage));
-
-		// Floats apparently always have 4 decimal places
-		// Since we already made sure the last ones are 00 
-		// we chop those off.
+		
 		DamageText = sMinDamage;
 
 		if(sMinDamage != sMaxDamage)
@@ -102,6 +99,10 @@ private function SetDamageRangeMessage()
 		}
 	}	
 		
+	// Strip any trailing .00 which add no value
+	// For example, "3.00" will be shown as "3"
+	ReplaceText(DamageText, ".00", "");
+
 	ResetDamageBreakdown();
 	AddDamage(class'UIUtilities_Text'.static.GetColoredText(DamageText, eUIState_Good, 36), true);		
 }
