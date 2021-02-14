@@ -1,5 +1,7 @@
 class ScreenListener_RD extends UIScreenListener config(ReliableDamage);
 
+var config bool RemoveSpread;
+
 // This event is triggered after a screen is initialized
 event OnInit(UIScreen Screen)
 {
@@ -7,13 +9,10 @@ event OnInit(UIScreen Screen)
     local X2AbilityTemplate AbilityTemplate;    
     local X2DataTemplate DataTemplate;
 
-    local XComGameState_CampaignSettings Settings;
     local XComGameStateHistory History; 
 	
 	local XComGameState GameState;
-	local XComGameStateContext GameStateContext;
-
-	local bool bIsTactical;
+	local XComGameStateContext GameStateContext;	
 
 	History = `XCOMHISTORY;
 	if(History == None) return;
@@ -25,13 +24,13 @@ event OnInit(UIScreen Screen)
 	if(GameStateContext == None) return;
 
 	// Only affect Tactical
-	bIsTactical = XComGameStateContext_TacticalGameRule(GameStateContext) != None;
-	if(!bIsTactical) return;	
+	if(XComGameStateContext_TacticalGameRule(GameStateContext) == None) return;
 
-    Settings = XComGameState_CampaignSettings(History.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
-	if(Settings == None) return;
-    
-	RemoveDamageSpreadFromWeapons();
+	if(RemoveSpread)
+	{
+		`Log("ReliableDamage: Removing all damage spread");
+		RemoveDamageSpreadFromWeapons();
+	} 
 
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();    
 	if (AbilityTemplateManager == none) return;    
@@ -41,7 +40,8 @@ event OnInit(UIScreen Screen)
 		AbilityTemplate = X2AbilityTemplate(DataTemplate);
 		if(AbilityTemplate == None) continue;
 
-		RemoveDamageSpreadFromAbility(AbilityTemplate);
+		if(RemoveSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
+
 		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
 	}
 
@@ -156,10 +156,8 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		if(bIsSingle)	AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
 		else			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);				
 
-		// We replaced an effect
 		bMadeReplacements = true;
 
-		// Build the Log Message
 		LogMessage = "ReliableDamage:";
 
 		// It happens that the same ApplyWeaponDamage instance is used as both a Single Target
@@ -231,7 +229,7 @@ private function RemoveDamageSpreadFromWeapons()
 {
 	local X2ItemTemplateManager ItemTemplateManager;
 	local X2WeaponTemplate WeaponTemplate;	
-	local X2DataTemplate DataTemplate;		
+	local X2DataTemplate DataTemplate;	
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;    
