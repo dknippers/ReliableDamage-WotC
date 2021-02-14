@@ -47,21 +47,24 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// that we don't necessarily want to touch. So we simply only change eHit_Miss, eHit_Graze, and eHit_Crit to eHit_Success.
 	
 	// Single Target
-	if(	ResultContext.HitResult == eHit_Miss  || 
-		(!KeepGraze && ResultContext.HitResult == eHit_Graze) || 
-		(!KeepCrit && ResultContext.HitResult == eHit_Crit)) 
+	if(ChangeToHit(ResultContext.HitResult))
 	{
 		ResultContext.HitResult = eHit_Success;
 	}
 
 	// Multi Target
 	for(i = 0; i < ResultContext.MultiTargetHitResults.Length; i++)
-	{
-		if(	ResultContext.MultiTargetHitResults[i] == eHit_Miss	 || 
-			(!KeepGraze && ResultContext.MultiTargetHitResults[i] == eHit_Graze) ||
-			(!KeepCrit && ResultContext.MultiTargetHitResults[i] == eHit_Crit))
+	{	
+		if(ChangeToHit(ResultContext.MultiTargetHitResults[i]))
 		{
 			ResultContext.MultiTargetHitResults[i] = eHit_Success;
 		}
 	}
-}				
+}	
+
+private function bool ChangeToHit(EAbilityHitResult hitResult) {
+	return 
+		hitResult == eHit_Miss || 
+		(!KeepGraze && hitResult == eHit_Graze) || 
+		(!KeepCrit && hitResult == eHit_Crit); 
+}			
