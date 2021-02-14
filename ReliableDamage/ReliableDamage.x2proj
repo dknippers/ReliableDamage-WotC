@@ -11,7 +11,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Config\" />
-    <Folder Include="Localization\" />
     <Folder Include="Src\" />
     <Folder Include="Src\ReliableDamage\" />
     <Folder Include="Src\ReliableDamage\Classes\" />
@@ -25,7 +24,6 @@
     <Content Include="Config\XComEditor.ini" />
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
-    <Content Include="Localization\XComGame.int" />
     <Content Include="Src\ReliableDamage\Classes\Main.uc">
       <SubType>Content</SubType>
     </Content>
