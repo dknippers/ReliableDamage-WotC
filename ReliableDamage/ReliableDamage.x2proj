@@ -7,6 +7,7 @@
     <SteamPublishID>0</SteamPublishID>
     <AssemblyName>ReliableDamage</AssemblyName>
     <RootNamespace>ReliableDamage</RootNamespace>
+    <ProjectGuid>{29c9b122-13a5-4b48-b646-31f20c2b8f16}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Config\" />
@@ -25,7 +26,7 @@
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
     <Content Include="Localization\XComGame.int" />
-    <Content Include="Src\ReliableDamage\Classes\ScreenListener_RD.uc">
+    <Content Include="Src\ReliableDamage\Classes\Main.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\ReliableDamage\Classes\UITacticalHUD_RD.uc">

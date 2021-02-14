@@ -1,16 +1,11 @@
-class ScreenListener_RD extends UIScreenListener config(ReliableDamage);
+class Main extends UIScreenListener config(ReliableDamage);
 
 var config bool RemoveSpread;
 
 // This event is triggered after a screen is initialized
 event OnInit(UIScreen Screen)
 {
-    local X2AbilityTemplateManager AbilityTemplateManager;
-    local X2AbilityTemplate AbilityTemplate;    
-    local X2DataTemplate DataTemplate;
-
-    local XComGameStateHistory History; 
-	
+    local XComGameStateHistory History; 	
 	local XComGameState GameState;
 	local XComGameStateContext GameStateContext;	
 
@@ -25,6 +20,16 @@ event OnInit(UIScreen Screen)
 
 	// Only affect Tactical
 	if(XComGameStateContext_TacticalGameRule(GameStateContext) == None) return;
+
+	InitReliableDamage();
+	InitShotHUD(Screen);	
+}
+
+private function InitReliableDamage()
+{
+	local X2AbilityTemplateManager AbilityTemplateManager;
+    local X2AbilityTemplate AbilityTemplate;    
+    local X2DataTemplate DataTemplate;
 
 	if(RemoveSpread)
 	{
@@ -44,8 +49,6 @@ event OnInit(UIScreen Screen)
 
 		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
 	}
-
-	InitShotHUD(Screen);
 }
 
 private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTemplate)
@@ -274,6 +277,27 @@ private function RemoveDamageSpreadFromWeaponEffects(array<X2Effect> WeaponEffec
 	}
 }
 
+// Returns true if the list of effects contains an effect that displaces
+// target or source, such as the GetOverHere effect of Viper or Skirimisher
+private function bool HasDisplacementEffect(X2AbilityTemplate AbilityTemplate) {
+	return 
+		ContainsDisplacementEffect(AbilityTemplate.AbilityTargetEffects) || 
+		ContainsDisplacementEffect(AbilityTemplate.AbilityMultiTargetEffects);
+}
+ 
+private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) {		
+	local X2Effect TargetEffect;
+
+	foreach TargetEffects(TargetEffect) 
+	{
+		// Test known displacement effects
+		if(X2Effect_GetOverHere(TargetEffect) != None) return true;
+		if(X2Effect_GetOverThere(TargetEffect) != None) return true;
+	}
+
+	return false;
+}
+
 // Applies our custom ShotHUD to the Screen if it was not done already
 private function InitShotHUD(UIScreen screen)
 {
@@ -301,27 +325,6 @@ private function InitShotHUD(UIScreen screen)
 
 	// Shotwings need to be initialized too	
 	TacticalHUD.m_kShotInfoWings = TacticalHUD.Spawn(class'UITacticalHUD_ShotWings', Screen).InitShotWings();
-}
-
-// Returns true if the list of effects contains an effect that displaces
-// target or source, such as the GetOverHere effect of Viper or Skirimisher
-private function bool HasDisplacementEffect(X2AbilityTemplate AbilityTemplate) {
-	return 
-		ContainsDisplacementEffect(AbilityTemplate.AbilityTargetEffects) || 
-		ContainsDisplacementEffect(AbilityTemplate.AbilityMultiTargetEffects);
-}
- 
-private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) {		
-	local X2Effect TargetEffect;
-
-	foreach TargetEffects(TargetEffect) 
-	{
-		// Test known displacement effects
-		if(X2Effect_GetOverHere(TargetEffect) != None) return true;
-		if(X2Effect_GetOverThere(TargetEffect) != None) return true;
-	}
-
-	return false;
 }
 
 defaultproperties
