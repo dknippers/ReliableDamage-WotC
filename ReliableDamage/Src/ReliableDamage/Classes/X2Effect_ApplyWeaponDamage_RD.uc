@@ -873,26 +873,3 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	StandardAim_RD.MinDamage = fActualMinDamage;
 	StandardAim_RD.MaxDamage = fActualMaxDamage;
 }
-
-// Without this override we get 2 damage tooltips when firing at a Destructible Object like an Alien Relay												
-simulated function AddX2ActionsForVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, name EffectApplyResult)
-{
-	local XComGameState_Destructible Destructible;
-
-	// For unknown reasons, firing at a Destructible with my modified ApplyWeaponDamage
-	// caused 2 "X Damage" Message Boxes to appear instead of one.
-	// To fix that, we don't do anything when this function triggered with a Destructible.
-	// It is unknown what causes the other Message Box, but this does fix it.
-	// Damage application itself works fine (applied only once), the issue is only with
-	// the message boxes that appear.
-	// We look at the OldState, since a destroyed object is not Targetable anymore but
-	// we specifically look at that property.
-	Destructible = XComGameState_Destructible(ActionMetadata.StateObject_OldState);
-	if(Destructible != None && Destructible.IsTargetable())
-	{
-		return;
-	}
-
-	// In all other cases, use the default behavior.
-	super.AddX2ActionsForVisualization(VisualizeGameState, ActionMetadata, EffectApplyResult);
-}
