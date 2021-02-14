@@ -156,11 +156,6 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		ApplyWeaponDamage.bApplyToWorldOnHit  = false;
 		ApplyWeaponDamage.bApplyToWorldOnMiss = false;		
 		ApplyWeaponDamage.TargetConditions.Length = 0;		
-
-		if(ApplyWeaponDamage.EffectDamageValue.Spread > 0) 
-		{
-			`Log("Found Spread of " @ ApplyWeaponDamage.EffectDamageValue.Spread @ "with ability" @ AbilityTemplate.DataName);	
-		}
 		
 		if(bIsSingle)	AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
 		else			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);				
