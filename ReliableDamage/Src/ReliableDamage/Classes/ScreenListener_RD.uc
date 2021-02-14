@@ -48,7 +48,7 @@ private function ApplyReliableDamageEffectsToAbilities()
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();    
 	if (AbilityTemplateManager == none) return;    
 
-	// Replace all Abilities that use StandardAim		
+	// Replace all Abilities that use StandardAim
 	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
 	{		
 		AbilityTemplate = X2AbilityTemplate(DataTemplate);
@@ -57,10 +57,7 @@ private function ApplyReliableDamageEffectsToAbilities()
 		// In the May 2016 update that came with the Alien Hunters DLC,
 		// a bunch of "MP" abilities were added, supposedly to be used in Multiplayer.
 		// We do not care about those, as we only want to change Singleplayer.		
-		if(AbilityTemplate.MP_PerkOverride != '')
-		{
-			continue;
-		}
+		if(AbilityTemplate.MP_PerkOverride != '') continue;
 			
 		// We only change abilities that use StandardAim
 		StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
@@ -68,7 +65,11 @@ private function ApplyReliableDamageEffectsToAbilities()
 
 		// Only replace if it is not already replaced
 		StandardAim_RD = X2AbilityToHitCalc_StandardAim_RD(AbilityTemplate.AbilityToHitCalc);
-		if(StandardAim_RD != None) continue;
+		if(StandardAim_RD != None) continue;	
+		
+		// Do not touch abilities that have any displacement effects.
+		// Making those abilities hit 100% of the time is extremely imbalanced.
+		if(HasDisplacementEffect(AbilityTemplate)) continue;
 		
 		// Replace Single Target Weapon Effects
 		bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
@@ -249,7 +250,7 @@ private function ApplyReliableDamageEffectsToWeapons()
 		// Remove Damage Spread
 		if(WeaponTemplate.BaseDamage.Spread > 0) 
 		{
-			`Log(WeaponTemplate.DataName @ ": Spread " @ WeaponTemplate.BaseDamage.Spread @ "-> 0");
+			`Log(WeaponTemplate.DataName @ ": Spread" @ WeaponTemplate.BaseDamage.Spread @ "-> 0");
 			WeaponTemplate.BaseDamage.Spread = 0;
 		}		
 	}
@@ -283,7 +284,28 @@ private function InitShotHUD(UIScreen screen)
 	// Shotwings need to be initialized too	
 	TacticalHUD.m_kShotInfoWings = TacticalHUD.Spawn(class'UITacticalHUD_ShotWings', Screen).InitShotWings();
 }
+
+// Returns true if the list of effects contains an effect that displaces
+// target or source, such as the GetOverHere effect of Viper or Skirimisher
+private function bool HasDisplacementEffect(X2AbilityTemplate AbilityTemplate) {
+	return 
+		ContainsDisplacementEffect(AbilityTemplate.AbilityTargetEffects) || 
+		ContainsDisplacementEffect(AbilityTemplate.AbilityMultiTargetEffects);
+}
  
+private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) {		
+	local X2Effect TargetEffect;
+
+	foreach TargetEffects(TargetEffect) 
+	{
+		// Test known displacement effects
+		if(X2Effect_GetOverHere(TargetEffect) != None) return true;
+		if(X2Effect_GetOverThere(TargetEffect) != None) return true;
+	}
+
+	return false;
+}
+
 defaultproperties
 {
     // Leaving this assigned to none will cause every screen to trigger its signals on this class
