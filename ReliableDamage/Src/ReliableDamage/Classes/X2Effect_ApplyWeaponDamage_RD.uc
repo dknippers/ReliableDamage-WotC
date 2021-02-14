@@ -355,10 +355,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 				DamageInfo.AmmoDamageValue.Crit +
 				DamageInfo.UpgradeDamageValue.Crit;
 
-			// Talon Rounds Crit bonus damage
-			// TODO: We could generalize this a bit better if we just look for all X2Effect_Persistent instances
-			// and call their GetAttackingDamageModifier method with EffectAppliedData's AbilityResultContext.HitResult set to eHit_Crit.
-			// That would then include Talon Rounds' bonus damage, but possibly others as well.
+			// Gather all Crit damage applied by effects such as Talon Rounds
 			if(SourceUnit != None)
 			{
 				// We are looking for bonus damage to Crit
