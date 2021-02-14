@@ -236,7 +236,7 @@ private function ApplyReliableDamageEffectsToWeapons()
 {
 	local X2ItemTemplateManager ItemTemplateManager;
 	local X2WeaponTemplate WeaponTemplate;	
-	local X2DataTemplate DataTemplate;	
+	local X2DataTemplate DataTemplate;		
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;    
@@ -247,12 +247,27 @@ private function ApplyReliableDamageEffectsToWeapons()
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
 
-		// Remove Damage Spread
-		if(WeaponTemplate.BaseDamage.Spread > 0) 
+		RemoveWeaponSpread(WeaponTemplate);		
+	}
+}
+
+private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate) 
+{
+	local WeaponDamageValue ExtraDamage;
+
+	if(WeaponTemplate.BaseDamage.Spread > 0) 
+	{
+		`Log(WeaponTemplate.DataName @ ": Base Spread" @ WeaponTemplate.BaseDamage.Spread @ "-> 0");
+		WeaponTemplate.BaseDamage.Spread = 0;
+	}	
+	
+	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
+	{
+		if(ExtraDamage.Spread > 0)
 		{
-			`Log(WeaponTemplate.DataName @ ": Spread" @ WeaponTemplate.BaseDamage.Spread @ "-> 0");
-			WeaponTemplate.BaseDamage.Spread = 0;
-		}		
+			`Log(WeaponTemplate.DataName @ ": Extra Spread" @ ExtraDamage.Spread @ "-> 0");
+			ExtraDamage.Spread = 0;
+		}
 	}
 }
 
