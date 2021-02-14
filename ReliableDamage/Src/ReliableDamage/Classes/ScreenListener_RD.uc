@@ -3,6 +3,10 @@ class ScreenListener_RD extends UIScreenListener config(ReliableDamage);
 // This event is triggered after a screen is initialized
 event OnInit(UIScreen Screen)
 {
+    local X2AbilityTemplateManager AbilityTemplateManager;
+    local X2AbilityTemplate AbilityTemplate;    
+    local X2DataTemplate DataTemplate;
+
     local XComGameState_CampaignSettings Settings;
     local XComGameStateHistory History; 
 	
@@ -25,79 +29,74 @@ event OnInit(UIScreen Screen)
 	if(!bIsTactical) return;	
 
     Settings = XComGameState_CampaignSettings(History.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
-	if(Settings == None) return;	
+	if(Settings == None) return;
     
-	// Replace all Ability weapon effects by their ReliableDamage version.
-	ApplyReliableDamageEffectsToAbilities();
-
-	// Adjust all Weapon Templates to be more reliable (e.g., remove Spread)
-	ApplyReliableDamageEffectsToWeapons();
-
-	InitShotHUD(Screen);
-}
-
-private function ApplyReliableDamageEffectsToAbilities()
-{
-	local X2AbilityTemplateManager AbilityTemplateManager;
-	local X2AbilityTemplate AbilityTemplate;	
-	local X2DataTemplate DataTemplate;
-	local X2AbilityToHitCalc_StandardAim StandardAim;
-	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;		
-	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;
+	RemoveDamageSpreadFromWeapons();
 
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();    
 	if (AbilityTemplateManager == none) return;    
 
-	// Replace all Abilities that use StandardAim
 	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
 	{		
 		AbilityTemplate = X2AbilityTemplate(DataTemplate);
 		if(AbilityTemplate == None) continue;
 
-		// In the May 2016 update that came with the Alien Hunters DLC,
-		// a bunch of "MP" abilities were added, supposedly to be used in Multiplayer.
-		// We do not care about those, as we only want to change Singleplayer.		
-		if(AbilityTemplate.MP_PerkOverride != '') continue;
-			
-		// We only change abilities that use StandardAim
-		StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
-		if(StandardAim == None) continue;
-
-		// Only replace if it is not already replaced
-		StandardAim_RD = X2AbilityToHitCalc_StandardAim_RD(AbilityTemplate.AbilityToHitCalc);
-		if(StandardAim_RD != None) continue;	
-		
-		// Do not touch abilities that have any displacement effects.
-		// Making those abilities hit 100% of the time is extremely imbalanced.
-		if(HasDisplacementEffect(AbilityTemplate)) continue;
-		
-		// Replace Single Target Weapon Effects
-		bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
-
-		// Replace Multi Target Weapon Effects
-		bMultiTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, false);
-
-		// If a single and/or multi weapon effect was replaced, use our StandardAim for this Ability.
-		// We require a weapon effect since we don't want to use our Reliable Damage
-		// for abilities (like Viper's Get Over Here) that use StandardAim but do not have
-		// an Apply Weapon Damage Effect.
-		if(bSingleTargetEffectWasReplaced || bMultiTargetEffectWasReplaced)
-		{
-			// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
-			// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
-			// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.			
-			// We do this for both Single and Multi effects again.
-			FixKnockbackEffects(AbilityTemplate, true);
-			FixKnockbackEffects(AbilityTemplate, false);
-
-			// Replace AbilityToHitCalc with our own.
-			// Copy all properties of StandardAim
-			StandardAim_RD = new class'X2AbilityToHitCalc_StandardAim_RD';
-			StandardAim_RD.Clone(StandardAim);
-
-			AbilityTemplate.AbilityToHitCalc = StandardAim_RD;
-		}
+		RemoveDamageSpreadFromAbility(AbilityTemplate);
+		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
 	}
+
+	InitShotHUD(Screen);
+}
+
+private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTemplate)
+{
+	local X2AbilityToHitCalc_StandardAim StandardAim;
+	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;		
+	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;	
+
+	// In the May 2016 update that came with the Alien Hunters DLC,
+	// a bunch of "MP" abilities were added, supposedly to be used in Multiplayer.
+	// We do not care about those, as we only want to change Singleplayer.		
+	if(AbilityTemplate.MP_PerkOverride != '') return;
+			
+	// We only change abilities that use StandardAim
+	StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
+	if(StandardAim == None) return;
+
+	// Only replace if it is not already replaced
+	StandardAim_RD = X2AbilityToHitCalc_StandardAim_RD(AbilityTemplate.AbilityToHitCalc);
+	if(StandardAim_RD != None) return;	
+		
+	// Do not touch abilities that have any displacement effects.
+	// Making those abilities hit 100% of the time is extremely imbalanced.
+	if(HasDisplacementEffect(AbilityTemplate)) return;
+		
+	// Replace Single Target Weapon Effects
+	bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
+
+	// Replace Multi Target Weapon Effects
+	bMultiTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, false);
+
+	// If a single and/or multi weapon effect was replaced, use our StandardAim for this Ability.
+	// We require a weapon effect since we don't want to use our Reliable Damage
+	// for abilities (like Viper's Get Over Here) that use StandardAim but do not have
+	// an Apply Weapon Damage Effect.
+	if(bSingleTargetEffectWasReplaced || bMultiTargetEffectWasReplaced)
+	{
+		// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
+		// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
+		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.			
+		// We do this for both Single and Multi effects again.
+		FixKnockbackEffects(AbilityTemplate, true);
+		FixKnockbackEffects(AbilityTemplate, false);
+
+		// Replace AbilityToHitCalc with our own.
+		// Copy all properties of StandardAim
+		StandardAim_RD = new class'X2AbilityToHitCalc_StandardAim_RD';
+		StandardAim_RD.Clone(StandardAim);
+
+		AbilityTemplate.AbilityToHitCalc = StandardAim_RD;
+	}	
 }
 
 private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bool bIsSingle)
@@ -121,11 +120,12 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
 
 		// Now let's see if it's a Weapon Damage Effect
-		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
-		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
+		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);		
 		
 		// Not a Weapon Damage Effect
 		if(ApplyWeaponDamage == None) continue;
+
+		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 		
 		// If we find any RD Weapon Effect we know we have already
 		// been through the whole list. Just quit right here.
@@ -140,11 +140,6 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// damage effect!
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';		
 		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
-
-		// We remove damage spread from the weapon effect as well, it only adds silly RNG.
-		// Note this does not remove damage spread from weapons themselves, that is done by modifying
-		// the weapon templates rather than the damage effects.
-		ApplyWeaponDamage_RD.EffectDamageValue.Spread = 0;
 
 		// Disable damage from the original Weapon Effect.			
 		// This is done as a workaround for the fact we cannot actually
@@ -232,7 +227,7 @@ private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate, bool bIs
 	}					
 }
 
-private function ApplyReliableDamageEffectsToWeapons()
+private function RemoveDamageSpreadFromWeapons()
 {
 	local X2ItemTemplateManager ItemTemplateManager;
 	local X2WeaponTemplate WeaponTemplate;	
@@ -247,7 +242,7 @@ private function ApplyReliableDamageEffectsToWeapons()
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
 
-		RemoveWeaponSpread(WeaponTemplate);		
+		RemoveWeaponSpread(WeaponTemplate);
 	}
 }
 
@@ -255,19 +250,29 @@ private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate)
 {
 	local WeaponDamageValue ExtraDamage;
 
-	if(WeaponTemplate.BaseDamage.Spread > 0) 
-	{
-		`Log(WeaponTemplate.DataName @ ": Base Spread" @ WeaponTemplate.BaseDamage.Spread @ "-> 0");
-		WeaponTemplate.BaseDamage.Spread = 0;
-	}	
-	
+	WeaponTemplate.BaseDamage.Spread = 0;	
+
 	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
 	{
-		if(ExtraDamage.Spread > 0)
-		{
-			`Log(WeaponTemplate.DataName @ ": Extra Spread" @ ExtraDamage.Spread @ "-> 0");
-			ExtraDamage.Spread = 0;
-		}
+		ExtraDamage.Spread = 0;		
+	}
+}
+
+private function RemoveDamageSpreadFromAbility(X2AbilityTemplate AbilityTemplate)
+{
+	RemoveDamageSpreadFromWeaponEffects(AbilityTemplate.AbilityTargetEffects);
+	RemoveDamageSpreadFromWeaponEffects(AbilityTemplate.AbilityMultiTargetEffects);
+}
+
+private function RemoveDamageSpreadFromWeaponEffects(array<X2Effect> WeaponEffects)
+{
+	local X2Effect WeaponEffect;
+	local X2Effect_ApplyWeaponDamage WeaponDamageEffect;
+
+	foreach WeaponEffects(WeaponEffect)
+	{
+		WeaponDamageEffect = X2Effect_ApplyWeaponDamage(WeaponEffect);
+		if(WeaponDamageEffect != None) WeaponDamageEffect.EffectDamageValue.Spread = 0;		
 	}
 }
 
