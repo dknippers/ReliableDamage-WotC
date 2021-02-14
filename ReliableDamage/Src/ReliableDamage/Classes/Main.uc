@@ -31,11 +31,7 @@ private function InitReliableDamage()
     local X2AbilityTemplate AbilityTemplate;    
     local X2DataTemplate DataTemplate;
 
-	if(RemoveSpread)
-	{
-		`Log("ReliableDamage: Removing all damage spread");
-		RemoveDamageSpreadFromWeapons();
-	} 
+	if(RemoveSpread) RemoveDamageSpreadFromWeapons();	
 
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();    
 	if (AbilityTemplateManager == none) return;    
