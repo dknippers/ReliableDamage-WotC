@@ -20,6 +20,7 @@ function Clone(X2Effect_ApplyWeaponDamage Source)
 	ApplyChanceFn = Source.ApplyChanceFn;
 	MinStatContestResult = Source.MinStatContestResult;
 	MaxStatContestResult = Source.MaxStatContestResult;
+	MultiTargetStatContestInfo = Source.MultiTargetStatContestInfo;
 	DamageTypes = Source.DamageTypes;
 	bIsImpairing = Source.bIsImpairing;
 	bIsImpairingMomentarily = Source.bIsImpairingMomentarily;
@@ -28,10 +29,11 @@ function Clone(X2Effect_ApplyWeaponDamage Source)
 	bShowImmunityAnyFailure = Source.bShowImmunityAnyFailure;
 	DelayVisualizationSec = Source.DelayVisualizationSec;
 	bAppliesDamage = Source.bAppliesDamage;
+	bCanBeRedirected = Source.bCanBeRedirected;
+	OverrideMissMessage = Source.OverrideMissMessage;
+	bHideDeathWorldMessage = Source.bHideDeathWorldMessage;	
 
 	// X2Effect_ApplyWeaponDamage
-	EffectDamageValue = Source.EffectDamageValue;
-	EnvironmentalDamageAmount = Source.EnvironmentalDamageAmount;
 	bExplosiveDamage = Source.bExplosiveDamage;
 	bIgnoreBaseDamage = Source.bIgnoreBaseDamage;
 	DamageTag = Source.DamageTag;
@@ -41,6 +43,10 @@ function Clone(X2Effect_ApplyWeaponDamage Source)
 	bAllowWeaponUpgrade = Source.bAllowWeaponUpgrade;
 	bBypassShields = Source.bBypassShields;
 	bIgnoreArmor = Source.bIgnoreArmor;
+	bBypassSustainEffects = Source.bBypassSustainEffects;
+	HideVisualizationOfResultsAdditional = Source.HideVisualizationOfResultsAdditional;
+	EffectDamageValue = Source.EffectDamageValue;
+	EnvironmentalDamageAmount = Source.EnvironmentalDamageAmount;
 
 	// The Bonus effect (e.g. Shred) is actually a function,
 	// so should be copied using a delegate
