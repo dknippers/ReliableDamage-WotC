@@ -38,9 +38,6 @@
     <Content Include="Src\ReliableDamage\Classes\X2Effect_ApplyWeaponDamage_RD.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\ReliableDamage\Classes\X2TargetingMethod_OverTheShoulder_RD.uc">
-      <SubType>Content</SubType>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
 </Project>

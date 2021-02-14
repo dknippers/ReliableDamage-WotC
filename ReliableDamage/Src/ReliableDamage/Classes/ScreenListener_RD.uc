@@ -60,15 +60,6 @@ private function ApplyReliableDamageEffectsToAbilities()
 		if(AbilityTemplate.MP_PerkOverride != '')
 		{
 			continue;
-		} 
-
-		// There is a "Accessed None"-exception in the default X2TargetingMethod_OverTheShoulder class
-		// which totally floods the logs (it keeps generating the same error per game tick or something while you are targeting).
-		// I have fixed this error with a very minor override.		
-		if(AbilityTemplate.TargetingMethod == class'X2TargetingMethod_OverTheShoulder')
-		{		
-			AbilityTemplate.TargetingMethod = class'X2TargetingMethod_OverTheShoulder_RD';
-			`Log("ReliableDamage: " $ "Replaced OverTheShoulder of " $ AbilityTemplate.DataName);
 		}
 			
 		// We only change abilities that use StandardAim
