@@ -1,6 +1,6 @@
 class Main extends Object config(ReliableDamage);
 
-var config bool RemoveSpread;
+var config bool RemoveDamageSpread;
 
 function InitReliableDamage()
 {
@@ -8,7 +8,12 @@ function InitReliableDamage()
     local X2AbilityTemplate AbilityTemplate;    
     local X2DataTemplate DataTemplate;
 
-	if(RemoveSpread) RemoveDamageSpreadFromWeapons();	
+	if(RemoveDamageSpread)
+	{
+		`Log("Reliable Damage: Removing Damage Spread");
+	}
+
+	if(RemoveDamageSpread) RemoveDamageSpreadFromWeapons();	
 
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();    
 	if (AbilityTemplateManager == none) return;    
@@ -18,7 +23,7 @@ function InitReliableDamage()
 		AbilityTemplate = X2AbilityTemplate(DataTemplate);
 		if(AbilityTemplate == None) continue;
 
-		if(RemoveSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
+		if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
 
 		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
 	}
