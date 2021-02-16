@@ -1,31 +1,8 @@
-class Main extends UIScreenListener config(ReliableDamage);
+class Main extends Object config(ReliableDamage);
 
 var config bool RemoveSpread;
 
-// This event is triggered after a screen is initialized
-event OnInit(UIScreen Screen)
-{
-    local XComGameStateHistory History; 	
-	local XComGameState GameState;
-	local XComGameStateContext GameStateContext;	
-
-	History = `XCOMHISTORY;
-	if(History == None) return;
-
-	GameState = History.GetGameStateFromHistory(History.FindStartStateIndex());
-	if(GameState == None) return;
-
-	GameStateContext = GameState.GetContext();
-	if(GameStateContext == None) return;
-
-	// Only affect Tactical
-	if(XComGameStateContext_TacticalGameRule(GameStateContext) == None) return;
-
-	InitReliableDamage();
-	InitShotHUD(Screen);	
-}
-
-private function InitReliableDamage()
+function InitReliableDamage()
 {
 	local X2AbilityTemplateManager AbilityTemplateManager;
     local X2AbilityTemplate AbilityTemplate;    
@@ -292,39 +269,4 @@ private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) 
 	}
 
 	return false;
-}
-
-// Applies our custom ShotHUD to the Screen if it was not done already
-private function InitShotHUD(UIScreen screen)
-{
-	local UITacticalHUD TacticalHUD;
-	local UITacticalHUD_ShotHUD_RD ShotHUD_RD;
-
-	// Apply our modified ShotHUD	
-	TacticalHUD = UITacticalHUD(Screen);	
-
-	// No HUD? We're done.
-	if(TacticalHUD == None) return;
-
-	// Is the ShotHUD already ours?
-	ShotHUD_RD = UITacticalHUD_ShotHUD_RD(TacticalHUD.m_kShotHUD);
-	
-	// Yes, so we don't have to initialize it again
-	if(ShotHUD_RD != None) return;
-
-	// We have not yet initialized ours
-	// Remove the existing one
-	TacticalHUD.m_kShotHUD.Remove();
-	
-	// And apply ours
-	TacticalHUD.m_kShotHUD = TacticalHUD.Spawn(class'UITacticalHUD_ShotHUD_RD', Screen).InitShotHUD();
-
-	// Shotwings need to be initialized too	
-	TacticalHUD.m_kShotInfoWings = TacticalHUD.Spawn(class'UITacticalHUD_ShotWings', Screen).InitShotWings();
-}
-
-defaultproperties
-{
-    // Leaving this assigned to none will cause every screen to trigger its signals on this class
-    ScreenClass=None
 }

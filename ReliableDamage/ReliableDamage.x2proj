@@ -24,6 +24,9 @@
     <Content Include="Config\XComEditor.ini" />
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
+    <Content Include="Src\ReliableDamage\Classes\UIScreenListener_RD.uc">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Src\ReliableDamage\Classes\Main.uc">
       <SubType>Content</SubType>
     </Content>
