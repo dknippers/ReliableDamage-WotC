@@ -1,14 +1,12 @@
 class X2Effect_ApplyWeaponDamage_RD extends X2Effect_ApplyWeaponDamage;
 
-var delegate<GetBonusEffectDamageValueDelegate> GetBonusEffectDamageValueFn;
-var delegate<ModifyDamageValueDelegate> ModifyDamageValueFn;
-
-delegate WeaponDamageValue GetBonusEffectDamageValueDelegate(XComGameState_Ability AbilityState, XComGameState_Unit SourceUnit, XComGameState_Item SourceWeapon, StateObjectReference TargetRef);
-delegate bool ModifyDamageValueDelegate(out WeaponDamageValue DamageValue, Damageable Target, out array<Name> AppliedDamageTypes);
+var X2Effect_ApplyWeaponDamage Original;
 
 // Copies all properties from the given X2Effect_ApplyWeaponDamage
 function Clone(X2Effect_ApplyWeaponDamage Source)
 {
+	Original = Source;
+
 	// X2Effect
 	TargetConditions = Source.TargetConditions;
 	bApplyOnHit = Source.bApplyOnHit;
@@ -47,26 +45,16 @@ function Clone(X2Effect_ApplyWeaponDamage Source)
 	HideVisualizationOfResultsAdditional = Source.HideVisualizationOfResultsAdditional;
 	EffectDamageValue = Source.EffectDamageValue;
 	EnvironmentalDamageAmount = Source.EnvironmentalDamageAmount;
-
-	// The Bonus effect (e.g. Shred) is actually a function,
-	// so should be copied using a delegate
-	GetBonusEffectDamageValueFn = Source.GetBonusEffectDamageValue;
-
-	// This was added for Long War 2, Ranger's Double Barrel
-	// uses this function so should be copied as well.
-	ModifyDamageValueFn = Source.ModifyDamageValue;
 }
 
 function WeaponDamageValue GetBonusEffectDamageValue(XComGameState_Ability AbilityState, XComGameState_Unit SourceUnit, XComGameState_Item SourceWeapon, StateObjectReference TargetRef)
 {
-	// We call the stored delegate function of the Source (see Clone function)
-	return GetBonusEffectDamageValueFn(AbilityState, SourceUnit, SourceWeapon, TargetRef);
+	return Original.GetBonusEffectDamageValue(AbilityState, SourceUnit, SourceWeapon, TargetRef);
 }
 
 simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Damageable Target, out array<Name> AppliedDamageTypes)
 {
-    // We call the stored delegate function of the Source (see Clone function)
-	return ModifyDamageValueFn(DamageValue, Target, AppliedDamageTypes);
+	return Original.ModifyDamageValue(DamageValue, Target, AppliedDamageTypes);
 }
 
 simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState, XComGameState_Effect NewEffectState)
