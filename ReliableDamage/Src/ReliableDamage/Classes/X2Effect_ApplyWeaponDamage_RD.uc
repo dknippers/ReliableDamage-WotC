@@ -2,10 +2,12 @@ class X2Effect_ApplyWeaponDamage_RD extends X2Effect_ApplyWeaponDamage;
 
 var X2Effect_ApplyWeaponDamage Original;
 
+var X2Condition_Toggle_RD OriginalToggleCondition;
+
 // Copies all properties from the given X2Effect_ApplyWeaponDamage
 function Clone(X2Effect_ApplyWeaponDamage Source)
 {
-	Original = Source;
+	Original = Source;	
 
 	// X2Effect
 	TargetConditions = Source.TargetConditions;
@@ -59,10 +61,96 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState) 
 {
-	local int iDamage;
-
+	local int iDamage, iMinDamage, iMaxDamage, iMaxDamageChance;
+	local float fHitChance, fDamage;	
+	
+	// Calculate damage as usual
 	iDamage = Original.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
 
-	// TOTAL DAMAGE: 1
-	return 1;
+	`Log("DEFAULT Damage =" @ iDamage);
+
+	// Update calculated damage based on hit chance
+	fHitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance / 100.0;
+	fDamage = fHitChance * iDamage;
+
+	iMinDamage = FFloor(fDamage);
+	iMaxDamage = FCeil(fDamage);
+
+	iMaxDamageChance = Round((fDamage - iMinDamage) * 100);	
+	iDamage = `SYNC_RAND(100) < iMaxDamageChance ? iMaxDamage : iMinDamage;
+	
+	`Log("fHitChance =" @ fHitChance);	
+	`Log("fDamage =" @ fDamage);
+	`Log("iMinDamage =" @ iMinDamage);
+	`Log("iMaxDamage =" @ iMaxDamage);
+	`Log("iMaxDamageChance =" @ iMaxDamageChance);
+	`Log("MODIFIED Damage =" @ iDamage);
+
+	return iDamage;
+}
+
+private function float GetHitChance(XComGameState_Ability Ability, StateObjectReference TargetRef)
+{	
+	local ShotBreakdown Breakdown;
+	local int HitChance;
+		
+	Ability.LookupShotBreakdown(Ability.OwnerStateObject, TargetRef, Ability.GetReference(), Breakdown);
+
+	if(Breakdown.bIsMultishot)
+	{
+		HitChance = Breakdown.MultiShotHitChance;
+	}
+	else
+	{		
+		HitChance = Breakdown.ResultTable[eHit_Success] + Breakdown.ResultTable[eHit_Crit] + Breakdown.ResultTable[eHit_Graze];
+	}
+
+	HitChance = Min(100, HitChance);
+
+	// Return HitChance as a value between 0.0 and 1.0
+	return HitChance / 100.0;
+}
+
+private function XComGameState_Ability GetAbility(StateObjectReference AbilityRef)
+{
+	local XComGameStateHistory History;
+	local XComGameState_BaseObject GameStateObject;
+	
+	History = `XCOMHISTORY;
+	GameStateObject = History.GetGameStateForObjectID(AbilityRef.ObjectID);
+
+	return XComGameState_Ability(GameStateObject);
+}
+
+simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
+{
+	local float fHitChance, fMinDamage, fMaxDamage;
+
+	if(OriginalToggleCondition == None) return;	
+	
+	// Flip to succeed to make Original.GetDamagePreview() work
+	OriginalToggleCondition.Succeed = true;
+
+	// Default behavior
+	Original.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
+
+	// Flip back to fail
+	OriginalToggleCondition.Succeed = false;
+
+	// `Log("DEFAULT MinDamagePreview.Damage" @ MinDamagePreview.Damage);
+	// `Log("DEFAULT MaxDamagePreview.Damage" @ MaxDamagePreview.Damage);
+
+	fHitChance = GetHitChance(AbilityState, TargetRef);
+
+	fMinDamage = fHitChance * MinDamagePreview.Damage;
+	fMaxDamage = fHitChance * MaxDamagePreview.Damage;
+
+	MinDamagePreview.Damage = FFloor(fMinDamage);
+	MaxDamagePreview.Damage = FCeil(fMaxDamage);
+	
+	// `Log("PREVIEW fHitChance" @ fHitChance);
+	// `Log("PREVIEW fMinDamage" @ fMinDamage);
+	// `Log("PREVIEW fMaxDamage" @ fMaxDamage);
+	// `Log("MODIFIED MinDamagePreview.Damage" @ MinDamagePreview.Damage);
+	// `Log("MODIFIED MaxDamagePreview.Damage" @ MaxDamagePreview.Damage);	
 }

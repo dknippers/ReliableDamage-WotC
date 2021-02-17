@@ -1,11 +1,5 @@
 class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim config(ReliableDamage);
 
-// Used to pass information from damage preview to ShotHUD
-// These contain the minimum and maximum damage values
-// for the current shot. They are set in ApplyWeaponDamage_RD.GetDamagePreview
-var float MinDamage;
-var float MaxDamage;
-
 // All config variables are set in XComReliableDamage.ini
 // Descriptions available there too
 var config bool RoundingEnabled;

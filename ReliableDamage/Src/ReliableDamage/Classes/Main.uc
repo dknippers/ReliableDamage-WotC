@@ -84,14 +84,12 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 {
 	local X2Effect TargetEffect;
 	local array<X2Effect> TargetEffects;
-	local X2Condition AlwaysFailCondition;
+	local X2Condition_Toggle_RD ToggleCondition;
 	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
 	local bool bMadeReplacements;
 	local int iMultiEffectIndex;
 	local string LogMessage;
-
-	AlwaysFailCondition = new class'X2Condition_AlwaysFail_RD';
 
 	bMadeReplacements = false;
 
@@ -119,13 +117,19 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// Make sure to copy all important properties of this
 		// damage effect!
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
-		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
+		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);		
 
 		// Disable the original Weapon Effect by adding a target condition
 		// that will always fail.
 		// This is done as a workaround for the fact we cannot actually
 		// remove it from the list of TargetEffects because that array is readonly.
-		ApplyWeaponDamage.TargetConditions.AddItem(AlwaysFailCondition);
+		ToggleCondition = new class'X2Condition_Toggle_RD';
+		ToggleCondition.Succeed = false;
+		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
+
+		// Supply it to the modified ApplyWeaponDamage as we want to be able to
+		// toggle it on demand later when necessary.
+		ApplyWeaponDamage_RD.OriginalToggleCondition = ToggleCondition;
 
 		if(bIsSingle)
 		{
