@@ -4,6 +4,6 @@ static event OnPostTemplatesCreated()
 {
 	local Main Main;
 	Main = new class'Main';
-	
+
 	Main.InitReliableDamage();
 }

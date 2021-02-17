@@ -21,18 +21,18 @@ function Clone(X2AbilityToHitCalc_StandardAim Source)
 	HitModifiers = Source.HitModifiers;
 
 	// X2AbilityToHitCalc_StandardAim
-	bIndirectFire = Source.bIndirectFire;						
+	bIndirectFire = Source.bIndirectFire;
 	bMeleeAttack = Source.bMeleeAttack;
 	bReactionFire = Source.bReactionFire;
 	bAllowCrit = Source.bAllowCrit;
 	bHitsAreCrits = Source.bHitsAreCrits;
-	bMultiTargetOnly = Source.bMultiTargetOnly;		
+	bMultiTargetOnly = Source.bMultiTargetOnly;
 	bOnlyMultiHitWithSuccess = Source.bOnlyMultiHitWithSuccess;
 	bGuaranteedHit = Source.bGuaranteedHit;
 	FinalMultiplier = Source.FinalMultiplier;
 
 	BuiltInHitMod = Source.BuiltInHitMod;
-	BuiltInCritMod = Source.BuiltInCritMod;	
+	BuiltInCritMod = Source.BuiltInCritMod;
 }
 
 function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarget, out AbilityResultContext ResultContext)
@@ -41,11 +41,11 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 
 	// Default behavior
 	super.RollForAbilityHit(kAbility, kTarget, ResultContext);
-	
+
 	// However, a regular Miss, Graze, or Crit cannot occur (since we incorporate those effects into all hits).
 	// Just note there appear to be some special cases (eHit_Untouchable, eHit_LightningReflexes)
 	// that we don't necessarily want to touch. So we simply only change eHit_Miss, eHit_Graze, and eHit_Crit to eHit_Success.
-	
+
 	// Single Target
 	if(ChangeToHit(ResultContext.HitResult))
 	{
@@ -54,17 +54,17 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 
 	// Multi Target
 	for(i = 0; i < ResultContext.MultiTargetHitResults.Length; i++)
-	{	
+	{
 		if(ChangeToHit(ResultContext.MultiTargetHitResults[i]))
 		{
 			ResultContext.MultiTargetHitResults[i] = eHit_Success;
 		}
 	}
-}	
+}
 
 private function bool ChangeToHit(EAbilityHitResult hitResult) {
-	return 
-		hitResult == eHit_Miss || 
-		(!KeepGraze && hitResult == eHit_Graze) || 
-		(!KeepCrit && hitResult == eHit_Crit); 
-}			
+	return
+		hitResult == eHit_Miss ||
+		(!KeepGraze && hitResult == eHit_Graze) ||
+		(!KeepCrit && hitResult == eHit_Crit);
+}

@@ -29,7 +29,7 @@ function Clone(X2Effect_ApplyWeaponDamage Source)
 	bAppliesDamage = Source.bAppliesDamage;
 	bCanBeRedirected = Source.bCanBeRedirected;
 	OverrideMissMessage = Source.OverrideMissMessage;
-	bHideDeathWorldMessage = Source.bHideDeathWorldMessage;	
+	bHideDeathWorldMessage = Source.bHideDeathWorldMessage;
 
 	// X2Effect_ApplyWeaponDamage
 	bExplosiveDamage = Source.bExplosiveDamage;
@@ -60,7 +60,7 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState, XComGameState_Effect NewEffectState)
 {
 	local Damageable kNewTargetDamageableState;
-	local int iDamage, iMitigated, NewRupture, NewShred, TotalToKill; 
+	local int iDamage, iMitigated, NewRupture, NewShred, TotalToKill;
 	local XComGameState_Unit TargetUnit, SourceUnit;
 	local XComGameState_Item SourceWeapon;
 	local array<X2WeaponUpgradeTemplate> WeaponUpgradeTemplates;
@@ -76,17 +76,17 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 
 	// Reliable Damage locals
 	local int iBaseHitChance, iModifiedHitChance, iAimAssistedHitChance, iFinalHitChance, iMissChance, iCritChance, iMinDamage, iMaxDamage, iMinRupture, iMaxRupture, iMinShred, iMaxShred, iDamageOnMiss, iCritDamage, iGrazeChance, iGrazeDamage, iArmor, iPierce, iEffectDmg, iRemainingArmor, PlayerID;
-	local float fActualDamage, fActualShred, fActualRupture, fHitChance, fMissChance, fCritChance, fMaxDamageChance, fMaxRuptureChance, fMaxShredChance, fRolledValue, fGrazeChance;		
+	local float fActualDamage, fActualShred, fActualRupture, fHitChance, fMissChance, fCritChance, fMaxDamageChance, fMaxRuptureChance, fMaxShredChance, fRolledValue, fGrazeChance;
 	local XComGameState_Ability Ability;
 	local ShotBreakdown Breakdown;
-	local ApplyDamageInfo DamageInfo;	
+	local ApplyDamageInfo DamageInfo;
 	local X2Effect_Persistent EffectTemplate;
 	local EffectAppliedData TempAppliedData;
 	local bool IsChainShot, IsXCom, IsAlien, ShotRemovesOverwatch;
 	local X2AbilityTemplate AbilityTemplate;
 	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
 	local XComGameState_Player Player;
-	local array<Name> CopyReservedActionPoints;	
+	local array<Name> CopyReservedActionPoints;
 	local EAbilityHitResult HitResult;
 
 	// Config vars from StandardAim_RD
@@ -128,12 +128,12 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 
 		// Get the ShotBreakdown for this shot, which includes all the probabilities of
 		// hit / crit / etc.
-		Ability.LookupShotBreakdown(Ability.OwnerStateObject, ApplyEffectParameters.TargetStateObjectRef, Ability.GetReference(), Breakdown);				
+		Ability.LookupShotBreakdown(Ability.OwnerStateObject, ApplyEffectParameters.TargetStateObjectRef, Ability.GetReference(), Breakdown);
 
 		// The Hit Chance can be above 100 (due to items / high level Snipers, etc).
 		// We have to limit it at 100, otherwise we will apply more damage than we should
 		// since we use it as a multiplier.
-		iBaseHitChance = Min((Breakdown.bIsMultishot ? Breakdown.MultiShotHitChance : Breakdown.ResultTable[eHit_Success] + Breakdown.ResultTable[eHit_Crit] + Breakdown.ResultTable[eHit_Graze] ), 100);		
+		iBaseHitChance = Min((Breakdown.bIsMultishot ? Breakdown.MultiShotHitChance : Breakdown.ResultTable[eHit_Success] + Breakdown.ResultTable[eHit_Crit] + Breakdown.ResultTable[eHit_Graze] ), 100);
 
 		// XCOM has several built-in ways to improve a player's hit chance (Aim Assist), invisible to the player.
 		// We will use this modified hit chance as well if we can find it.
@@ -199,7 +199,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		// TargetUnit can be None, e.g. when targeting an objective that needs to be destroyed
 		if(TargetUnit != None) `Log("Target: " $ TargetUnit.GetName(eNameType_FullNick));
 		`Log("Ability: " $ Ability.GetMyTemplateName());
-		`Log("Hit Result: " $ HitResult);		
+		`Log("Hit Result: " $ HitResult);
 		`Log("Hit Chance: " $ iBaseHitChance $ "%");
 		if(iAimAssistedHitChance != iBaseHitChance)
 		{
@@ -243,7 +243,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		// Lowering the damage on all standard shots has the same expected value of damage reduction overall
 		// as the regular Graze, but is just less random.
 		// Graze chance is taken from the ShotBreakdown of this shot
-		
+
 		// If Graze Shots can still occur, do not incorporate any Graze Chance and Damage into regular shots
 		if(KeepGraze)
 		{
@@ -253,17 +253,17 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		{
 			iGrazeChance = Breakdown.ResultTable[eHit_Graze];
 		}
-		
+
 		fGrazeChance = iGrazeChance / 100.0;
 
 		if(iGrazeChance > 0)
 		{
-			// The Graze "damage" is actually a negative number, as 
+			// The Graze "damage" is actually a negative number, as
 			// a graze shot deals less damage than a regular shot.
 			iGrazeDamage = (iDamage * GRAZE_DMG_MULT) - iDamage;
 
-			`Log("Graze Chance: " $ fGrazeChance);		
-			`Log("Graze Damage: " $ iGrazeDamage);	
+			`Log("Graze Chance: " $ fGrazeChance);
+			`Log("Graze Damage: " $ iGrazeDamage);
 		}
 
 		// Critical Damage
@@ -272,7 +272,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		{
 			iCritChance = 0;
 		}
-		else 
+		else
 		{
 			iCritChance = Breakdown.ResultTable[eHit_Crit];
 		}
@@ -386,7 +386,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		`Log("Actual Damage: " $ fActualDamage $ " (" $ iFinalHitChance $ "% of " $ iDamage $
 			((iCritChance > 0 && iCritDamage > 0) ? " + " $ iCritChance $ "% of " $ iCritDamage : "") $
 			(iDamageOnMiss > 0 ? " + " $ iMissChance $ "% of " $ iDamageOnMiss : "") $
-			(iGrazeChance > 0 ? " + " $ iGrazeChance $ "% of " $ iGrazeDamage : "") $			
+			(iGrazeChance > 0 ? " + " $ iGrazeChance $ "% of " $ iGrazeDamage : "") $
 			")", iDamage > 0);
 		`Log("Actual Shred: " $ fActualShred $ " (" $ iFinalHitChance $ "% of " $ NewShred $ ")", NewShred > 0);
 		`Log("Actual Rupture: " $ fActualRupture $ " (" $ iFinalHitChance $ "% of " $ NewRupture $ ")", NewRupture > 0);
@@ -539,7 +539,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 				}
 			}
 		}
-		
+
 		if (NewRupture > 0)
 		{
 			kNewTargetDamageableState.AddRupturedValue(NewRupture);
@@ -576,8 +576,8 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 		}
 		// <- Reliable Damage modifications
 	}
-}                                  
-                                    
+}
+
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local ShotBreakdown Breakdown;
@@ -594,7 +594,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	local StateObjectReference EffectRef;
 	local X2Effect_Persistent EffectTemplate;
 	local EffectAppliedData TempAppliedData;
-	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;	
+	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
 	local XComGameState_Player Player;
 	local X2AbilityTemplate AbilityTemplate;
 	local bool IsXCom, IsAlien, RoundingEnabled, KeepCrit, KeepGraze;
@@ -605,7 +605,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	History = `XCOMHISTORY;
 	SourceUnit = XComGameState_Unit(History.GetGameStateForObjectID(AbilityState.OwnerStateObject.ObjectID));
 	PlayerID = SourceUnit.GetAssociatedPlayerID();
-	Player = XComGameState_Player(History.GetGameStateForObjectID(PlayerID));	
+	Player = XComGameState_Player(History.GetGameStateForObjectID(PlayerID));
 	TargetUnit = XComGameState_Unit(History.GetGameStateForObjectID(TargetRef.ObjectID));
 	IsXCom = Player.GetTeam() == eTeam_XCom;
 	IsAlien = Player.GetTeam() == eTeam_Alien;
@@ -625,8 +625,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	// Aim Assist changes the hit chance
 	if(StandardAim_RD != None && !StandardAim_RD.bReactionFire && (IsAlien || (IsXCom && iHitChance < StandardAim_RD.MaxAimAssistScore)))
-	{			
-		iModifiedHitChance = StandardAim_RD.GetModifiedHitChanceForCurrentDifficulty(Player, TargetUnit, iHitChance);		
+	{
+		iModifiedHitChance = StandardAim_RD.GetModifiedHitChanceForCurrentDifficulty(Player, TargetUnit, iHitChance);
 
 		// In vanilla XCOM, the modified hit chance is only applied if the first shot (without the increased hit %)
 		// was a miss (if XCom), or if it was a hit (if Alien)
@@ -655,7 +655,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	}
 
 	fHitChance = iHitChance / 100.0;
-	fMissChance = FMax(0.0, 1.0 - fHitChance);	
+	fMissChance = FMax(0.0, 1.0 - fHitChance);
 
 	if(TargetUnit != None)
 	{
@@ -680,7 +680,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 		// our calculation, and subtract the plain Rupture value since XCOM will add that again afterwards,
 		// so we cancel that effect.
 		iRupture = TargetUnit.GetRupturedValue();
-	}	
+	}
 
 	// If the attacker pierces a certain amount of armor, subtract it here
 	// Make sure armor does not go below 0
@@ -778,7 +778,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	iMaxDamage = Max(1, MaxDamagePreview.Damage + iRupture - iMaxArmor);
 
 	// Grazes
-	// A graze hit deals partial damage, based on a multiplier that is applied to regular (i.e., not crit) damage.		
+	// A graze hit deals partial damage, based on a multiplier that is applied to regular (i.e., not crit) damage.
 	if(KeepGraze)
 	{
 		iGrazeChance = 0;
@@ -787,8 +787,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	{
 		iGrazeChance = Breakdown.ResultTable[eHit_Graze];
 	}
-	
-	fGrazeChance = iGrazeChance / 100.0;	
+
+	fGrazeChance = iGrazeChance / 100.0;
 
 	// Note the Graze damage is actually negative, since we work with delta values compared to the base damage of a shot.
 	iMinGrazeDamage = (iMinDamage * GRAZE_DMG_MULT) - iMinDamage;
@@ -799,7 +799,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	// We do *NOT* show the damage absorbed by Armor in the preview, but only damage done to HP and Shield.
 	// XCOM by default does show the damage absorbed by Armor, but this is only confusing, especially when you have
 	// armor piercing items (e.g. A.P. rounds) and have to remember to this and do the math yourself.
-	// With this preview, you always know the damage that will be done to HP / Shield without any effort on your part.	
+	// With this preview, you always know the damage that will be done to HP / Shield without any effort on your part.
 	fActualMinDamage = fHitChance * iMinDamage + fCritChance * iMinCritDamage + fGrazeChance * iMinGrazeDamage + fMissChance * iDamageOnMiss;
 	fActualMaxDamage = fHitChance * iMaxDamage + fCritChance * iMaxCritDamage + fGrazeChance * iMaxGrazeDamage + fMissChance * iDamageOnMiss;
 
