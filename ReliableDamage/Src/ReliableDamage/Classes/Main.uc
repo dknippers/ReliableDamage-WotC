@@ -88,7 +88,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;				
 	local bool bMadeReplacements;
 	local int iMultiEffectIndex;
-	local string LogMessage; // Log when a Single and/or Multi Effect is replaced
+	local string LogMessage;	
 
 	bMadeReplacements = false;
 
