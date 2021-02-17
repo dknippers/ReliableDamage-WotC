@@ -33,6 +33,9 @@
     <Content Include="Src\ReliableDamage\Classes\X2AbilityToHitCalc_StandardAim_RD.uc">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Src\ReliableDamage\Classes\X2Condition_AlwaysFail_RD.uc">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Src\ReliableDamage\Classes\X2DownloadableContentInfo_RD.uc" />
     <Content Include="Src\ReliableDamage\Classes\X2Effect_ApplyWeaponDamage_RD.uc">
       <SubType>Content</SubType>

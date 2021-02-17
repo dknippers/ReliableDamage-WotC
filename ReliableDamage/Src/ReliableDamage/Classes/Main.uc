@@ -84,11 +84,14 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 {
 	local X2Effect TargetEffect;
 	local array<X2Effect> TargetEffects;
+	local X2Condition AlwaysFailCondition;
 	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;				
 	local bool bMadeReplacements;
 	local int iMultiEffectIndex;
 	local string LogMessage;	
+
+	AlwaysFailCondition = new class'X2Condition_AlwaysFail_RD';
 
 	bMadeReplacements = false;
 
@@ -122,20 +125,20 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';		
 		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
 
-		// Disable damage from the original Weapon Effect.			
+		// Disable the original Weapon Effect by adding a target condition
+		// that will always fail. 
 		// This is done as a workaround for the fact we cannot actually
-		// remove it from the list of TargetEffects						
-		ApplyWeaponDamage.ApplyChance         = 0;
-		ApplyWeaponDamage.ApplyChanceFn       = None;
-		ApplyWeaponDamage.bAppliesDamage      = false;	
-		ApplyWeaponDamage.bApplyOnHit         = false;
-		ApplyWeaponDamage.bApplyOnMiss        = false;		
-		ApplyWeaponDamage.bApplyToWorldOnHit  = false;
-		ApplyWeaponDamage.bApplyToWorldOnMiss = false;		
-		ApplyWeaponDamage.TargetConditions.Length = 0;		
+		// remove it from the list of TargetEffects because that array is readonly.
+		ApplyWeaponDamage.TargetConditions.AddItem(AlwaysFailCondition);
 		
-		if(bIsSingle)	AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
-		else			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);				
+		if(bIsSingle) 
+		{
+			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
+		}
+		else 
+		{
+			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);				
+		} 
 
 		bMadeReplacements = true;
 
