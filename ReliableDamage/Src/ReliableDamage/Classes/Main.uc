@@ -114,11 +114,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// If we find any RD Weapon Effect we know we have already
 		// been through the whole list. Just quit right here.
 		if(ApplyWeaponDamage_RD != None) return bMadeReplacements;			
-
-		// We now know this is a Weapon Damage effect, 
-		// and is not an instance of our ApplyWeaponDamage_RD.
-		// We should replace this one.
-
+	
 		// Add the Reliable Damage version of this effect
 		// Make sure to copy all important properties of this 
 		// damage effect!
