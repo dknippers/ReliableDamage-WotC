@@ -2,6 +2,8 @@ class Main extends Object config(ReliableDamage);
 
 var config bool RemoveDamageSpread;
 
+delegate WithEffect(X2Effect Effect);
+
 function InitReliableDamage()
 {
 	local X2AbilityTemplateManager AbilityTemplateManager;
@@ -66,10 +68,8 @@ private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTe
 	{
 		// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
 		// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
-		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.
-		// We do this for both Single and Multi effects again.
-		FixKnockbackEffects(AbilityTemplate, true);
-		FixKnockbackEffects(AbilityTemplate, false);
+		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.		
+		FixKnockbackEffects(AbilityTemplate);		
 
 		// Replace AbilityToHitCalc with our own.
 		// Copy all properties of StandardAim
@@ -101,28 +101,19 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// Only look at Effects that work on hit and deal damage
 		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
 
-		// Now let's see if it's a Weapon Damage Effect
-		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
-
-		// Not a Weapon Damage Effect
+		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);		
 		if(ApplyWeaponDamage == None) continue;
 
 		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 
-		// If we find any RD Weapon Effect we know we have already
-		// been through the whole list. Just quit right here.
-		if(ApplyWeaponDamage_RD != None) return bMadeReplacements;
-
-		// Add the Reliable Damage version of this effect
-		// Make sure to copy all important properties of this
-		// damage effect!
+		// Already replaced by us, ignore.
+		if(ApplyWeaponDamage_RD != None) continue;
+	
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
-		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);		
+		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
 
-		// Disable the original Weapon Effect by adding a target condition
-		// that will always fail.
-		// This is done as a workaround for the fact we cannot actually
-		// remove it from the list of TargetEffects because that array is readonly.
+		// Disable the original ApplyWeaponDamage effect by adding a condition we can
+		// switch on or off at will. We cannot remove it from the Effects as it is readonly.
 		ToggleCondition = new class'X2Condition_Toggle_RD';
 		ToggleCondition.Succeed = false;
 		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
@@ -133,7 +124,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 
 		if(bIsSingle)
 		{
-			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);
+			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
 		}
 		else
 		{
@@ -179,33 +170,21 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 // Make sure Knockback Effects are present at the end of the list of Effects,
 // otherwise they do not run at all (or probably they do, but are interrupted right after
 // they start).
-private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate, bool bIsSingle)
+private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate)
 {
-	local X2Effect TargetEffect;
-	local array<X2Effect> TargetEffects;
-	local X2Effect_Knockback Knockback;
+	ForEachKnockback(AbilityTemplate.AbilityTargetEffects, AbilityTemplate.AddTargetEffect);	
+	ForEachKnockback(AbilityTemplate.AbilityMultiTargetEffects, AbilityTemplate.AddMultiTargetEffect);
+}
 
-	// Single Target and Multi Target effects are stored in different Arrays
-	TargetEffects = bIsSingle ? AbilityTemplate.AbilityTargetEffects : AbilityTemplate.AbilityMultiTargetEffects;
+private function ForEachKnockback(array<X2Effect> TargetEffects, delegate<WithEffect> WithEffect)
+{
+	local X2Effect TargetEffect;	
+	local X2Effect_Knockback Knockback;
 
 	foreach TargetEffects(TargetEffect)
 	{
-		// Is this a Knockback effect?
 		Knockback = X2Effect_Knockback(TargetEffect);
-
-		// Not a Knockback
-		if(Knockback == None) continue;
-
-		// This is a Knockback effect.
-		// Just add it again to the end of the list.
-		// We tried making a new X2Effect_Knockback instance which copied all properties
-		// from the original Knockback, add that to the list and disable the original Knockback,
-		// like we do with ApplyWeaponDamage. However, that didn't work as well (soldiers were being
-		// tossed all over the place instead of a few meters backwards), whereas this works perfectly.
-		// It is a bit weird that there are now 2 active Knockback effects (or technically 1 instance that appears
-		// in the list 2 times) but that does not seem to matter too much so I'll let it slide.
-		if(bIsSingle)	AbilityTemplate.AddTargetEffect(Knockback);
-		else			AbilityTemplate.AddMultiTargetEffect(Knockback);
+		if(Knockback != None) WithEffect(Knockback);
 	}
 }
 
