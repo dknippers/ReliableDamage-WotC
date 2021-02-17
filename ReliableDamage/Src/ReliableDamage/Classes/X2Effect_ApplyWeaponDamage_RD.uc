@@ -61,7 +61,7 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState) 
 {
-	local int iDamage, iMinDamage, iMaxDamage, iMaxDamageChance;
+	local int iDamage;
 	local float fHitChance, fDamage;	
 	
 	// Calculate damage as usual
@@ -73,17 +73,10 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	fHitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance / 100.0;
 	fDamage = fHitChance * iDamage;
 
-	iMinDamage = FFloor(fDamage);
-	iMaxDamage = FCeil(fDamage);
-
-	iMaxDamageChance = Round((fDamage - iMinDamage) * 100);	
-	iDamage = `SYNC_RAND(100) < iMaxDamageChance ? iMaxDamage : iMinDamage;
+	iDamage = RollForInt(fDamage);
 	
-	`Log("fHitChance =" @ fHitChance);	
+	`Log("fHitChance =" @ fHitChance);
 	`Log("fDamage =" @ fDamage);
-	`Log("iMinDamage =" @ iMinDamage);
-	`Log("iMaxDamage =" @ iMaxDamage);
-	`Log("iMaxDamageChance =" @ iMaxDamageChance);
 	`Log("MODIFIED Damage =" @ iDamage);
 
 	return iDamage;
@@ -109,6 +102,17 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 
 	// Return HitChance as a value between 0.0 and 1.0
 	return HitChance / 100.0;
+}
+
+private function int RollForInt(float Value)
+{
+	local int MinValue, MaxValue, MaxValueChance;	
+
+	MinValue = FFloor(Value);
+	MaxValue = FCeil(Value);
+
+	MaxValueChance = Round((Value - MinValue) * 100);	
+	return `SYNC_RAND(100) < MaxValueChance ? MaxValue : MinValue;
 }
 
 private function XComGameState_Ability GetAbility(StateObjectReference AbilityRef)
