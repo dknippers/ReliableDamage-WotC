@@ -27,9 +27,6 @@
     <Content Include="Src\ReliableDamage\Classes\Main.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\ReliableDamage\Classes\UITacticalHUD_ShotHUD_RD.uc">
-      <SubType>Content</SubType>
-    </Content>
     <Content Include="Src\ReliableDamage\Classes\X2AbilityToHitCalc_StandardAim_RD.uc">
       <SubType>Content</SubType>
     </Content>
