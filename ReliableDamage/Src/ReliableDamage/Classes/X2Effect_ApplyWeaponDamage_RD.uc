@@ -70,7 +70,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("DEFAULT Damage =" @ iDamage);
 
 	// Update calculated damage based on hit chance
-	fHitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance / 100.0;
+	fHitChance = Min(100, ApplyEffectParameters.AbilityResultContext.CalculatedHitChance) / 100.0;
 	fDamage = fHitChance * iDamage;
 
 	iDamage = RollForInt(fDamage);
