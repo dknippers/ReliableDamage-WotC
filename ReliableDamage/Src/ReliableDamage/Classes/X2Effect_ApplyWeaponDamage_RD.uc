@@ -62,22 +62,32 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState) 
 {
 	local int iDamage;
-	local float fHitChance, fDamage;	
+	local float fHitChance, fDamage, fShred, fRupture;
 	
-	// Calculate damage as usual
-	iDamage = Original.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
+	// Calculate damage as usual	
+	iDamage = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
 
 	`Log("DEFAULT Damage =" @ iDamage);
 
 	// Update calculated damage based on hit chance
 	fHitChance = Clamp(ApplyEffectParameters.AbilityResultContext.CalculatedHitChance, 0, 100) / 100.0;
+	
 	fDamage = fHitChance * iDamage;
+	fRupture = fHitChance * NewRupture;
+	fShred = fHitChance * NewShred;	
 
 	iDamage = RollForInt(fDamage);
+	NewRupture = RollForInt(fRupture);
+	NewShred = RollForInt(fShred);
 	
 	`Log("fHitChance =" @ fHitChance);
 	`Log("fDamage =" @ fDamage);
+	`Log("fRupture =" @ fRupture);
+	`Log("fShred =" @ fShred);
+	
 	`Log("MODIFIED Damage =" @ iDamage);
+	`Log("MODIFIED Rupture =" @ NewRupture);
+	`Log("MODIFIED Shred =" @ NewShred);
 
 	return iDamage;
 }
@@ -119,29 +129,27 @@ private function XComGameState_Ability GetAbility(StateObjectReference AbilityRe
 
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
-	local float fHitChance, fMinDamage, fMaxDamage;
-
-	if(OriginalToggleCondition == None) return;	
-	
-	// Flip to succeed to make Original.GetDamagePreview() work
-	OriginalToggleCondition.Succeed = true;
+	local float fHitChance;
 
 	// Default behavior
-	Original.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
-
-	// Flip back to fail
-	OriginalToggleCondition.Succeed = false;
-
-	// `Log("DEFAULT MinDamagePreview.Damage" @ MinDamagePreview.Damage);
-	// `Log("DEFAULT MaxDamagePreview.Damage" @ MaxDamagePreview.Damage);
+	super.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);		
+	
+	`Log("DEFAULT MinDamagePreview.Damage" @ MinDamagePreview.Damage);
+	`Log("DEFAULT MaxDamagePreview.Damage" @ MaxDamagePreview.Damage);
 
 	fHitChance = GetHitChance(AbilityState, TargetRef);
 
-	fMinDamage = fHitChance * MinDamagePreview.Damage;
-	fMaxDamage = fHitChance * MaxDamagePreview.Damage;
+	// Damage
+	MinDamagePreview.Damage = FFloor(fHitChance * MinDamagePreview.Damage);
+	MaxDamagePreview.Damage = FCeil(fHitChance * MaxDamagePreview.Damage);
 
-	MinDamagePreview.Damage = FFloor(fMinDamage);
-	MaxDamagePreview.Damage = FCeil(fMaxDamage);
+	// Rupture
+	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
+	MaxDamagePreview.Rupture = FCeil(fHitChance * MaxDamagePreview.Rupture);
+
+	// Shred
+	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
+	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
 	
 	// `Log("PREVIEW fHitChance" @ fHitChance);
 	// `Log("PREVIEW fMinDamage" @ fMinDamage);
