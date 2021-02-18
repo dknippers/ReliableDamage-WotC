@@ -193,6 +193,7 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2ItemTemplateManager ItemTemplateManager;
 	local X2WeaponTemplate WeaponTemplate;
 	local X2DataTemplate DataTemplate;
+	local array<X2DataTemplate> DataTemplates;
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;
@@ -203,7 +204,16 @@ private function RemoveDamageSpreadFromWeapons()
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
 
-		RemoveWeaponSpread(WeaponTemplate);
+		ItemTemplateManager.FindDataTemplateAllDifficulties(WeaponTemplate.DataName, DataTemplates);
+
+		foreach DataTemplates(DataTemplate)
+		{
+			WeaponTemplate = X2WeaponTemplate(DataTemplate);
+			if(WeaponTemplate == None) continue;
+
+			`Log("Removing spread from" @ WeaponTemplate.DataName);
+			RemoveWeaponSpread(WeaponTemplate);
+		}
 	}
 }
 
@@ -212,10 +222,12 @@ private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate)
 	local WeaponDamageValue ExtraDamage;
 
 	WeaponTemplate.BaseDamage.Spread = 0;
+	WeaponTemplate.BaseDamage.PlusOne = 0;
 
 	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
 	{
 		ExtraDamage.Spread = 0;
+		ExtraDamage.PlusOne = 0;
 	}
 }
 
