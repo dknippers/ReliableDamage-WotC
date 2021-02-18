@@ -21,11 +21,6 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
 	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;
 
-	// In the May 2016 update that came with the Alien Hunters DLC,
-	// a bunch of "MP" abilities were added, supposedly to be used in Multiplayer.
-	// We do not care about those, as we only want to change Singleplayer.
-	if(AbilityTemplate.MP_PerkOverride != '') return;
-
 	// We only change abilities that use StandardAim
 	StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
 	if(StandardAim == None) return;
