@@ -70,7 +70,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("DEFAULT Damage =" @ iDamage);
 
 	// Update calculated damage based on hit chance
-	fHitChance = Min(100, ApplyEffectParameters.AbilityResultContext.CalculatedHitChance) / 100.0;
+	fHitChance = Clamp(ApplyEffectParameters.AbilityResultContext.CalculatedHitChance, 0, 100) / 100.0;
 	fDamage = fHitChance * iDamage;
 
 	iDamage = RollForInt(fDamage);
@@ -89,16 +89,7 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 		
 	Ability.LookupShotBreakdown(Ability.OwnerStateObject, TargetRef, Ability.GetReference(), Breakdown);
 
-	if(Breakdown.bIsMultishot)
-	{
-		HitChance = Breakdown.MultiShotHitChance;
-	}
-	else
-	{		
-		HitChance = Breakdown.ResultTable[eHit_Success] + Breakdown.ResultTable[eHit_Crit] + Breakdown.ResultTable[eHit_Graze];
-	}
-
-	HitChance = Min(100, HitChance);
+	HitChance = Clamp(Breakdown.bIsMultishot ? Breakdown.MultiShotHitChance : Breakdown.FinalHitChance, 0, 100);
 
 	// Return HitChance as a value between 0.0 and 1.0
 	return HitChance / 100.0;
