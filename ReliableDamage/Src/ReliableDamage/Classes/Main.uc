@@ -9,6 +9,7 @@ function InitReliableDamage()
 	local X2AbilityTemplateManager AbilityTemplateManager;
     local X2AbilityTemplate AbilityTemplate;
     local X2DataTemplate DataTemplate;
+	local array<X2AbilityTemplate> AbilityTemplates;
 
 	if(RemoveDamageSpread)
 	{
@@ -25,9 +26,14 @@ function InitReliableDamage()
 		AbilityTemplate = X2AbilityTemplate(DataTemplate);
 		if(AbilityTemplate == None) continue;
 
-		if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
+		AbilityTemplateManager.FindAbilityTemplateAllDifficulties(AbilityTemplate.DataName, AbilityTemplates);
 
-		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
+		foreach AbilityTemplates(AbilityTemplate)
+		{			
+			if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
+
+			ApplyReliableDamageEffectsToAbility(AbilityTemplate);
+		}
 	}
 }
 
@@ -204,14 +210,14 @@ private function RemoveDamageSpreadFromWeapons()
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
 
+		`Log("Removing spread from" @ WeaponTemplate.DataName);
+
 		ItemTemplateManager.FindDataTemplateAllDifficulties(WeaponTemplate.DataName, DataTemplates);
 
 		foreach DataTemplates(DataTemplate)
 		{
 			WeaponTemplate = X2WeaponTemplate(DataTemplate);
 			if(WeaponTemplate == None) continue;
-
-			`Log("Removing spread from" @ WeaponTemplate.DataName);
 			RemoveWeaponSpread(WeaponTemplate);
 		}
 	}
