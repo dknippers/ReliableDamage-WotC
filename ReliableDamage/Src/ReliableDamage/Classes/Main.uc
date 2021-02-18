@@ -3,41 +3,19 @@ class Main extends Object config(ReliableDamage);
 var config bool RemoveDamageSpread;
 
 delegate WithEffect(X2Effect Effect);
+delegate WithAbilityTemplate(X2AbilityTemplate AbilityTemplate);
 
 function InitReliableDamage()
 {
-	local X2AbilityTemplateManager AbilityTemplateManager;
-    local X2AbilityTemplate AbilityTemplate;
-    local X2DataTemplate DataTemplate;
-	local array<X2AbilityTemplate> AbilityTemplates;
-
-	if(RemoveDamageSpread)
+	if(RemoveDamageSpread) 
 	{
-		`Log("Reliable Damage: Removing Damage Spread");
+		RemoveDamageSpreadFromWeapons();
 	}
 
-	if(RemoveDamageSpread) RemoveDamageSpreadFromWeapons();
-
-	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
-	if (AbilityTemplateManager == none) return;
-
-	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
-	{
-		AbilityTemplate = X2AbilityTemplate(DataTemplate);
-		if(AbilityTemplate == None) continue;
-
-		AbilityTemplateManager.FindAbilityTemplateAllDifficulties(AbilityTemplate.DataName, AbilityTemplates);
-
-		foreach AbilityTemplates(AbilityTemplate)
-		{			
-			if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
-
-			ApplyReliableDamageEffectsToAbility(AbilityTemplate);
-		}
-	}
+	ForEachAbilityTemplate(MaybeUpdateAbility);	
 }
 
-private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTemplate)
+private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 {
 	local X2AbilityToHitCalc_StandardAim StandardAim;
 	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
@@ -59,6 +37,8 @@ private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTe
 	// Do not touch abilities that have any displacement effects.
 	// Making those abilities hit 100% of the time is extremely imbalanced.
 	if(HasDisplacementEffect(AbilityTemplate)) return;
+
+	if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
 
 	// Replace Single Target Weapon Effects
 	bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
@@ -194,6 +174,30 @@ private function ForEachKnockback(array<X2Effect> TargetEffects, delegate<WithEf
 	}
 }
 
+private function ForEachAbilityTemplate(delegate<WithAbilityTemplate> WithAbilityTemplate)
+{
+	local X2AbilityTemplateManager AbilityTemplateManager;
+    local X2AbilityTemplate AbilityTemplate;
+    local X2DataTemplate DataTemplate;
+	local array<X2AbilityTemplate> AbilityTemplates;
+	
+	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
+	if (AbilityTemplateManager == none) return;
+
+	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
+	{
+		AbilityTemplate = X2AbilityTemplate(DataTemplate);
+		if(AbilityTemplate == None) continue;
+
+		AbilityTemplateManager.FindAbilityTemplateAllDifficulties(AbilityTemplate.DataName, AbilityTemplates);
+
+		foreach AbilityTemplates(AbilityTemplate)
+		{
+			WithAbilityTemplate(AbilityTemplate);
+		}
+	}
+}
+
 private function RemoveDamageSpreadFromWeapons()
 {
 	local X2ItemTemplateManager ItemTemplateManager;
@@ -201,11 +205,13 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2DataTemplate DataTemplate;
 	local array<X2DataTemplate> DataTemplates;
 
+	`Log("Reliable Damage: Removing Damage Spread");
+
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;
 
 	// Loop through all weapons in the game
-	foreach ItemTemplateManager.IterateTemplates(DataTemplate, None)
+	foreach ItemTemplateManager.IterateTemplates(DataTemplate)
 	{
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
