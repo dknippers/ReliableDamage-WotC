@@ -4,8 +4,6 @@ class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim c
 // Descriptions available there too
 var config int OverwatchRemovalMinimumDamage;
 var config int OverwatchRemovalMinimumHitChance;
-var config bool KeepGraze;
-var config bool KeepCrit;
 
 // Copies all properties from the given X2AbilityToHitCalc_StandardAim
 function Clone(X2AbilityToHitCalc_StandardAim Source)
@@ -35,10 +33,6 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// Default behavior
 	super.RollForAbilityHit(kAbility, kTarget, ResultContext);
 
-	// However, a regular Miss, Graze, or Crit cannot occur (since we incorporate those effects into all hits).
-	// Just note there appear to be some special cases (eHit_Untouchable, eHit_LightningReflexes)
-	// that we don't necessarily want to touch. So we simply only change eHit_Miss, eHit_Graze, and eHit_Crit to eHit_Success.
-
 	// Single Target
 	if(ShouldChangeToHit(ResultContext.HitResult))
 	{
@@ -55,9 +49,7 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	}
 }
 
-private function bool ShouldChangeToHit(EAbilityHitResult hitResult) {
-	return
-		hitResult == eHit_Miss ||
-		(!KeepGraze && hitResult == eHit_Graze) ||
-		(!KeepCrit && hitResult == eHit_Crit);
+private function bool ShouldChangeToHit(EAbilityHitResult HitResult) 
+{
+	return HitResult == eHit_Miss || HitResult == eHit_Graze;
 }
