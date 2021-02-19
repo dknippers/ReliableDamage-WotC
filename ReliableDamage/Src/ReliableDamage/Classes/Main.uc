@@ -7,12 +7,12 @@ delegate WithAbilityTemplate(X2AbilityTemplate AbilityTemplate);
 
 function InitReliableDamage()
 {
-	if(RemoveDamageSpread) 
+	if(RemoveDamageSpread)
 	{
 		RemoveDamageSpreadFromWeapons();
 	}
 
-	ForEachAbilityTemplate(MaybeUpdateAbility);	
+	ForEachAbilityTemplate(MaybeUpdateAbility);
 }
 
 private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
@@ -49,8 +49,8 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 	{
 		// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
 		// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
-		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.		
-		FixKnockbackEffects(AbilityTemplate);		
+		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.
+		FixKnockbackEffects(AbilityTemplate);
 
 		// Replace AbilityToHitCalc with our own.
 		// Copy all properties of StandardAim
@@ -82,14 +82,14 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// Only look at Effects that work on hit and deal damage
 		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
 
-		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);		
+		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
 		if(ApplyWeaponDamage == None) continue;
 
 		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 
 		// Already replaced by us, ignore.
 		if(ApplyWeaponDamage_RD != None) continue;
-	
+
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
 		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
 
@@ -105,7 +105,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 
 		if(bIsSingle)
 		{
-			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);			
+			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);
 		}
 		else
 		{
@@ -153,13 +153,13 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 // they start).
 private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate)
 {
-	ForEachKnockback(AbilityTemplate.AbilityTargetEffects, AbilityTemplate.AddTargetEffect);	
+	ForEachKnockback(AbilityTemplate.AbilityTargetEffects, AbilityTemplate.AddTargetEffect);
 	ForEachKnockback(AbilityTemplate.AbilityMultiTargetEffects, AbilityTemplate.AddMultiTargetEffect);
 }
 
 private function ForEachKnockback(array<X2Effect> TargetEffects, delegate<WithEffect> WithEffect)
 {
-	local X2Effect TargetEffect;	
+	local X2Effect TargetEffect;
 	local X2Effect_Knockback Knockback;
 
 	foreach TargetEffects(TargetEffect)
@@ -175,7 +175,7 @@ private function ForEachAbilityTemplate(delegate<WithAbilityTemplate> WithAbilit
     local X2AbilityTemplate AbilityTemplate;
     local X2DataTemplate DataTemplate;
 	local array<X2AbilityTemplate> AbilityTemplates;
-	
+
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
 	if (AbilityTemplateManager == none) return;
 

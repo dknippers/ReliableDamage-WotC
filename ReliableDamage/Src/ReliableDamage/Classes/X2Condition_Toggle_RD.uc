@@ -12,7 +12,7 @@ event name CallAbilityMeetsCondition(XComGameState_Ability kAbility, XComGameSta
 
 private function name GetResult() { return Succeed ? SUCCESS : FAILURE; }
 
-DefaultProperties 
+DefaultProperties
 {
 	Succeed = false
 	FAILURE = "AA_Failure"
