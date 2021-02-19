@@ -189,23 +189,11 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	// Default behavior
 	super.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
 
-	`Log("");
-	`Log("<ReliableDamage.Preview>");
-
-	`Log("IN Damage" @ MinDamagePreview.Damage $ "-" $ MaxDamagePreview.Damage);
-	`Log("IN Rupture" @ MinDamagePreview.Rupture, MinDamagePreview.Rupture > 0);
-	`Log("IN Shred" @ MinDamagePreview.Shred, MinDamagePreview.Shred > 0);
-
 	fHitChance = GetHitChance(AbilityState, TargetRef);
 	fMissChance = 1.0f - fHitChance;
 	fDamageOnMiss = fMissChance * GetDamageOnMiss(AbilityState);
 
-	`Log("DamageOnMiss" @ fDamageOnMiss, fDamageOnMiss > 0);
-
-	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
-
-	`Log("ArmorPiercing" @ MaxDamagePreview.Pierce, MaxDamagePreview.Pierce > 0);
-	`Log("ArmorMitigation" @ iArmorMitigation, iArmorMitigation > 0);
+	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);	
 
 	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation);
 	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation);
@@ -220,12 +208,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	// Shred
 	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
-	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
-
-	`Log("OUT Damage" @ MinDamagePreview.Damage $ "-" $ MaxDamagePreview.Damage);
-
-	`Log("</ReliableDamage.Preview>");
-	`Log("");
+	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);	
 }
 
 private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Damage = 0, optional int Pierce = 0)
