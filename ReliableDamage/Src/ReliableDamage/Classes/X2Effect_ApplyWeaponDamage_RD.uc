@@ -67,6 +67,12 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	// Calculate damage as usual
 	iDamageOnHit = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
 
+	if(ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success)
+    {
+		// We only adjust damage for regular hits. Do not touch anything else.
+        return iDamageOnHit;
+    }
+
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
 
