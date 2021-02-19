@@ -31,12 +31,11 @@ This mod is installed to \SteamApps\workshop\content\268500\688497616
 Configuration options can be set in Config\XComReliableDamage.ini.
 That file also contains a full description of each option, so look there for more in depth information.
 [list]
-[*] [b]RoundingEnabled[/b] - Rounds all damage values to whole numbers. 0 to disable (default), 1 to enable.
 [*] [b]OverwatchRemovalMinimumDamage[/b] - Minimum damage required to cancel Overwatch. Default = 2.
 [*] [b]OverwatchRemovalMinimumHitChance[/b] - Minimum hit chance required to cancel Overwatch. Default = 50.
 [*] [b]KeepCrit[/b] - Keep Critical Shots like in regular XCOM. 0 to disable (default), 1 to enable.
 [*] [b]KeepGraze[/b] - Keep Graze Shots (Dodge) like in regular XCOM. 0 to disable (default), 1 to enable
-[*] [b]RemoveSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove.
+[*] [b]RemoveDamageSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove.
 [/list]
 
 [h1]Compatibility[/h1]

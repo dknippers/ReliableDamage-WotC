@@ -2,7 +2,6 @@ class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim c
 
 // All config variables are set in XComReliableDamage.ini
 // Descriptions available there too
-var config bool RoundingEnabled;
 var config int OverwatchRemovalMinimumDamage;
 var config int OverwatchRemovalMinimumHitChance;
 var config bool KeepGraze;
