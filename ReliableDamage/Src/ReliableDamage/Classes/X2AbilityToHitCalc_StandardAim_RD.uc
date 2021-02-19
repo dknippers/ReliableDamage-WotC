@@ -1,9 +1,4 @@
-class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim config(ReliableDamage);
-
-// All config variables are set in XComReliableDamage.ini
-// Descriptions available there too
-var config int OverwatchRemovalMinimumDamage;
-var config int OverwatchRemovalMinimumHitChance;
+class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim;
 
 // Copies all properties from the given X2AbilityToHitCalc_StandardAim
 function Clone(X2AbilityToHitCalc_StandardAim Source)

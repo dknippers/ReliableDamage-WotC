@@ -1,6 +1,8 @@
 class Main extends Object config(ReliableDamage);
 
 var config bool RemoveDamageSpread;
+var config int OverwatchRemovalMinimumDamage;
+var config int OverwatchRemovalMinimumHitChance;
 
 delegate WithEffect(X2Effect Effect);
 delegate WithAbilityTemplate(X2AbilityTemplate AbilityTemplate);
