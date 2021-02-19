@@ -2,43 +2,24 @@ class Main extends Object config(ReliableDamage);
 
 var config bool RemoveDamageSpread;
 
+delegate WithEffect(X2Effect Effect);
+delegate WithAbilityTemplate(X2AbilityTemplate AbilityTemplate);
+
 function InitReliableDamage()
 {
-	local X2AbilityTemplateManager AbilityTemplateManager;
-    local X2AbilityTemplate AbilityTemplate;
-    local X2DataTemplate DataTemplate;
-
 	if(RemoveDamageSpread)
 	{
-		`Log("Reliable Damage: Removing Damage Spread");
+		RemoveDamageSpreadFromWeapons();
 	}
 
-	if(RemoveDamageSpread) RemoveDamageSpreadFromWeapons();
-
-	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
-	if (AbilityTemplateManager == none) return;
-
-	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
-	{
-		AbilityTemplate = X2AbilityTemplate(DataTemplate);
-		if(AbilityTemplate == None) continue;
-
-		if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
-
-		ApplyReliableDamageEffectsToAbility(AbilityTemplate);
-	}
+	ForEachAbilityTemplate(MaybeUpdateAbility);
 }
 
-private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTemplate)
+private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 {
 	local X2AbilityToHitCalc_StandardAim StandardAim;
 	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
 	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;
-
-	// In the May 2016 update that came with the Alien Hunters DLC,
-	// a bunch of "MP" abilities were added, supposedly to be used in Multiplayer.
-	// We do not care about those, as we only want to change Singleplayer.
-	if(AbilityTemplate.MP_PerkOverride != '') return;
 
 	// We only change abilities that use StandardAim
 	StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
@@ -51,6 +32,8 @@ private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTe
 	// Do not touch abilities that have any displacement effects.
 	// Making those abilities hit 100% of the time is extremely imbalanced.
 	if(HasDisplacementEffect(AbilityTemplate)) return;
+
+	if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
 
 	// Replace Single Target Weapon Effects
 	bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
@@ -67,9 +50,7 @@ private function ApplyReliableDamageEffectsToAbility(X2AbilityTemplate AbilityTe
 		// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
 		// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
 		// also have to fix any knockback effects by making sure they are placed at the end of the list of effects.
-		// We do this for both Single and Multi effects again.
-		FixKnockbackEffects(AbilityTemplate, true);
-		FixKnockbackEffects(AbilityTemplate, false);
+		FixKnockbackEffects(AbilityTemplate);
 
 		// Replace AbilityToHitCalc with our own.
 		// Copy all properties of StandardAim
@@ -84,14 +65,12 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 {
 	local X2Effect TargetEffect;
 	local array<X2Effect> TargetEffects;
-	local X2Condition AlwaysFailCondition;
+	local X2Condition_Toggle_RD ToggleCondition;
 	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
 	local bool bMadeReplacements;
 	local int iMultiEffectIndex;
 	local string LogMessage;
-
-	AlwaysFailCondition = new class'X2Condition_AlwaysFail_RD';
 
 	bMadeReplacements = false;
 
@@ -103,29 +82,26 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// Only look at Effects that work on hit and deal damage
 		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
 
-		// Now let's see if it's a Weapon Damage Effect
 		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
-
-		// Not a Weapon Damage Effect
 		if(ApplyWeaponDamage == None) continue;
 
 		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 
-		// If we find any RD Weapon Effect we know we have already
-		// been through the whole list. Just quit right here.
-		if(ApplyWeaponDamage_RD != None) return bMadeReplacements;
+		// Already replaced by us, ignore.
+		if(ApplyWeaponDamage_RD != None) continue;
 
-		// Add the Reliable Damage version of this effect
-		// Make sure to copy all important properties of this
-		// damage effect!
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
 		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
 
-		// Disable the original Weapon Effect by adding a target condition
-		// that will always fail.
-		// This is done as a workaround for the fact we cannot actually
-		// remove it from the list of TargetEffects because that array is readonly.
-		ApplyWeaponDamage.TargetConditions.AddItem(AlwaysFailCondition);
+		// Disable the original ApplyWeaponDamage effect by adding a condition we can
+		// switch on or off at will. We cannot remove it from the Effects as it is readonly.
+		ToggleCondition = new class'X2Condition_Toggle_RD';
+		ToggleCondition.Succeed = false;
+		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
+
+		// Supply it to the modified ApplyWeaponDamage as we want to be able to
+		// toggle it on demand later when necessary.
+		ApplyWeaponDamage_RD.OriginalToggleCondition = ToggleCondition;
 
 		if(bIsSingle)
 		{
@@ -175,33 +151,45 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 // Make sure Knockback Effects are present at the end of the list of Effects,
 // otherwise they do not run at all (or probably they do, but are interrupted right after
 // they start).
-private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate, bool bIsSingle)
+private function FixKnockbackEffects(X2AbilityTemplate AbilityTemplate)
+{
+	ForEachKnockback(AbilityTemplate.AbilityTargetEffects, AbilityTemplate.AddTargetEffect);
+	ForEachKnockback(AbilityTemplate.AbilityMultiTargetEffects, AbilityTemplate.AddMultiTargetEffect);
+}
+
+private function ForEachKnockback(array<X2Effect> TargetEffects, delegate<WithEffect> WithEffect)
 {
 	local X2Effect TargetEffect;
-	local array<X2Effect> TargetEffects;
 	local X2Effect_Knockback Knockback;
-
-	// Single Target and Multi Target effects are stored in different Arrays
-	TargetEffects = bIsSingle ? AbilityTemplate.AbilityTargetEffects : AbilityTemplate.AbilityMultiTargetEffects;
 
 	foreach TargetEffects(TargetEffect)
 	{
-		// Is this a Knockback effect?
 		Knockback = X2Effect_Knockback(TargetEffect);
+		if(Knockback != None) WithEffect(Knockback);
+	}
+}
 
-		// Not a Knockback
-		if(Knockback == None) continue;
+private function ForEachAbilityTemplate(delegate<WithAbilityTemplate> WithAbilityTemplate)
+{
+	local X2AbilityTemplateManager AbilityTemplateManager;
+    local X2AbilityTemplate AbilityTemplate;
+    local X2DataTemplate DataTemplate;
+	local array<X2AbilityTemplate> AbilityTemplates;
 
-		// This is a Knockback effect.
-		// Just add it again to the end of the list.
-		// We tried making a new X2Effect_Knockback instance which copied all properties
-		// from the original Knockback, add that to the list and disable the original Knockback,
-		// like we do with ApplyWeaponDamage. However, that didn't work as well (soldiers were being
-		// tossed all over the place instead of a few meters backwards), whereas this works perfectly.
-		// It is a bit weird that there are now 2 active Knockback effects (or technically 1 instance that appears
-		// in the list 2 times) but that does not seem to matter too much so I'll let it slide.
-		if(bIsSingle)	AbilityTemplate.AddTargetEffect(Knockback);
-		else			AbilityTemplate.AddMultiTargetEffect(Knockback);
+	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
+	if (AbilityTemplateManager == none) return;
+
+	foreach AbilityTemplateManager.IterateTemplates(DataTemplate, None)
+	{
+		AbilityTemplate = X2AbilityTemplate(DataTemplate);
+		if(AbilityTemplate == None) continue;
+
+		AbilityTemplateManager.FindAbilityTemplateAllDifficulties(AbilityTemplate.DataName, AbilityTemplates);
+
+		foreach AbilityTemplates(AbilityTemplate)
+		{
+			WithAbilityTemplate(AbilityTemplate);
+		}
 	}
 }
 
@@ -210,17 +198,29 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2ItemTemplateManager ItemTemplateManager;
 	local X2WeaponTemplate WeaponTemplate;
 	local X2DataTemplate DataTemplate;
+	local array<X2DataTemplate> DataTemplates;
+
+	`Log("Reliable Damage: Removing Damage Spread");
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;
 
 	// Loop through all weapons in the game
-	foreach ItemTemplateManager.IterateTemplates(DataTemplate, None)
+	foreach ItemTemplateManager.IterateTemplates(DataTemplate)
 	{
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
 
-		RemoveWeaponSpread(WeaponTemplate);
+		`Log("Removing spread from" @ WeaponTemplate.DataName);
+
+		ItemTemplateManager.FindDataTemplateAllDifficulties(WeaponTemplate.DataName, DataTemplates);
+
+		foreach DataTemplates(DataTemplate)
+		{
+			WeaponTemplate = X2WeaponTemplate(DataTemplate);
+			if(WeaponTemplate == None) continue;
+			RemoveWeaponSpread(WeaponTemplate);
+		}
 	}
 }
 
@@ -229,10 +229,12 @@ private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate)
 	local WeaponDamageValue ExtraDamage;
 
 	WeaponTemplate.BaseDamage.Spread = 0;
+	WeaponTemplate.BaseDamage.PlusOne = 0;
 
 	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
 	{
 		ExtraDamage.Spread = 0;
+		ExtraDamage.PlusOne = 0;
 	}
 }
 

@@ -1,11 +1,5 @@
 class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim config(ReliableDamage);
 
-// Used to pass information from damage preview to ShotHUD
-// These contain the minimum and maximum damage values
-// for the current shot. They are set in ApplyWeaponDamage_RD.GetDamagePreview
-var float MinDamage;
-var float MaxDamage;
-
 // All config variables are set in XComReliableDamage.ini
 // Descriptions available there too
 var config bool RoundingEnabled;
@@ -47,7 +41,7 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// that we don't necessarily want to touch. So we simply only change eHit_Miss, eHit_Graze, and eHit_Crit to eHit_Success.
 
 	// Single Target
-	if(ChangeToHit(ResultContext.HitResult))
+	if(ShouldChangeToHit(ResultContext.HitResult))
 	{
 		ResultContext.HitResult = eHit_Success;
 	}
@@ -55,14 +49,14 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// Multi Target
 	for(i = 0; i < ResultContext.MultiTargetHitResults.Length; i++)
 	{
-		if(ChangeToHit(ResultContext.MultiTargetHitResults[i]))
+		if(ShouldChangeToHit(ResultContext.MultiTargetHitResults[i]))
 		{
 			ResultContext.MultiTargetHitResults[i] = eHit_Success;
 		}
 	}
 }
 
-private function bool ChangeToHit(EAbilityHitResult hitResult) {
+private function bool ShouldChangeToHit(EAbilityHitResult hitResult) {
 	return
 		hitResult == eHit_Miss ||
 		(!KeepGraze && hitResult == eHit_Graze) ||
