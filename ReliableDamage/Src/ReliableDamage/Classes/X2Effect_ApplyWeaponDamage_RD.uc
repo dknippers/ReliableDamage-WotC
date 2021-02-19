@@ -112,7 +112,14 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 	// Return HitChance as a value between 0.0 and 1.0
 	fHitChance = iHitChance / 100.0f;
 
+	ModifyHitChanceForSpecialCase(Ability, TargetRef, fHitChance);
+
 	return fHitChance;
+}
+
+private function float ModifyHitChanceForSpecialCase(XComGameState_Ability Ability, StateObjectReference TargetRef, out float fHitChance)
+{
+	// TODO: Handle cases like ChainShot here which need the HitChance lowered.	
 }
 
 private function int RollForInt(float Value)
