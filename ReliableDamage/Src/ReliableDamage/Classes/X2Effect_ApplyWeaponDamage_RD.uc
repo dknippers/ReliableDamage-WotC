@@ -365,14 +365,10 @@ private function int RollForInt(float Value)
 private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Damage = 0, optional int Pierce = 0)
 {
 	local Damageable Damageable;
-	local XComGameStateHistory History;
-	local XComGameState_BaseObject GameStateObject;
 	local ArmorMitigationResults ArmorMitigationResults;
 	local int iArmorMitigation;
 
-	History = `XCOMHISTORY;
-	GameStateObject = History.GetGameStateForObjectID(TargetRef.ObjectID);
-	Damageable = Damageable(GameStateObject);
+	Damageable = Damageable(GetGameStateObject(TargetRef));
 	if(Damageable == None) return 0;
 
 	// Cannot be negative
