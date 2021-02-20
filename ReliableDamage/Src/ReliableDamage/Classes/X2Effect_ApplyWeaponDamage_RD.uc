@@ -88,6 +88,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 
 	`Log("Source:" @ AbilityContext.SourceUnit.GetName(eNameType_FullNick));
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
+	`Log("Weapon:" @ AbilityContext.SourceWeapon.GetMyTemplateName());
 	`Log("Target:" @ AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetName(eNameType_FullNick) : string(AbilityContext.TargetObject.Class));
 
 	LogInt("IN Damage", iDamageOnHit);
