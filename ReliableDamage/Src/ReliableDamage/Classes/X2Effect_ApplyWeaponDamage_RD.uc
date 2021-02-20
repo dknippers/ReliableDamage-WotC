@@ -4,6 +4,18 @@ var X2Effect_ApplyWeaponDamage Original;
 
 var X2Condition_Toggle_RD OriginalToggleCondition;
 
+struct AbilityGameStateContext
+{
+	var StateObjectReference AbilityRef;
+	var StateObjectReference SourceRef;
+	var StateObjectReference TargetRef;
+
+	var XComGameState_Ability Ability;
+	var XComGameState_Unit SourceUnit;
+	var XComGameState_Item SourceWeapon;
+	var XComGameState_Unit TargetUnit;
+};
+
 // Copies all properties from the given X2Effect_ApplyWeaponDamage
 function Clone(X2Effect_ApplyWeaponDamage Source)
 {
@@ -63,7 +75,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 {
 	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iDamageOnGraze;
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fTotalDamage, fDamageOnHit, fDamageOnMiss, fDamageOnCrit, fDamageOnGraze, fShred, fRupture;
-	local XComGameState_Ability Ability;
+	local AbilityGameStateContext AbilityContext;
 
 	// Calculate damage as usual
 	iDamageOnHit = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
@@ -74,24 +86,28 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 		return iDamageOnHit;
 	}
 
+	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef);
+
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
+
+	`Log("Source:" @ AbilityContext.SourceUnit.GetName(eNameType_FullNick));
+	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
+	if(AbilityContext.TargetUnit != None) `Log("Target:" @ AbilityContext.TargetUnit.GetName(eNameType_FullNick));
 
 	`Log("IN Damage" @ iDamageOnHit);
 	`Log("IN Rupture" @ NewRupture, NewRupture > 0);
 	`Log("IN Shred" @ NewShred, NewShred > 0);
 
-	Ability = GetAbility(ApplyEffectParameters.AbilityStateObjectRef);
-
-	fHitChance = GetHitChance(Ability, ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
+	fHitChance = GetHitChance(AbilityContext.Ability, AbilityContext.TargetRef, fCritChance, fGrazeChance);
 	fMissChance = 1.0f - fHitChance;
 
 	fDamageOnHit = fHitChance * iDamageOnHit;
 
-	iDamageOnMiss = GetDamageOnMiss(Ability);
+	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
-	iDamageOnCrit = GetDamageOnCrit(Ability, ApplyEffectParameters.TargetStateObjectRef);
+	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, AbilityContext.TargetRef);
 	fDamageOnCrit = fCritChance * iDamageOnCrit;
 
 	// Note this should be negative number; a Graze hit reduces damage taken
@@ -274,6 +290,25 @@ private function int SumCrit(ApplyDamageInfo DamageInfo)
 		DamageInfo.BonusEffectDamageValue.Crit +
 		DamageInfo.AmmoDamageValue.Crit +
 		DamageInfo.UpgradeDamageValue.Crit;
+}
+
+private function AbilityGameStateContext GetAbilityContext(StateObjectReference AbilityRef, StateObjectReference TargetRef)
+{
+	local AbilityGameStateContext Context;
+	local XComGameState_Ability Ability;
+
+	Ability = GetAbility(AbilityRef);
+
+	Context.AbilityRef = AbilityRef;
+	Context.SourceRef = Ability.OwnerStateObject;
+	Context.TargetRef = TargetRef;
+
+	Context.Ability = Ability;
+	Context.SourceUnit = GetUnit(Ability.OwnerStateObject);
+	Context.SourceWeapon = GetWeapon(Ability);
+	Context.TargetUnit = GetUnit(TargetRef);
+
+	return Context;
 }
 
 private function XComGameState_Item GetWeapon(XComGameState_Ability Ability)
