@@ -198,7 +198,22 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 
 private function float ModifyHitChanceForSpecialCase(XComGameState_Ability Ability, StateObjectReference TargetRef, out float fHitChance)
 {
-	// TODO: Handle cases like ChainShot here which need the HitChance lowered.
+	MaybeModifyForChainShot(Ability, fHitChance);
+
+	return fHitChance;
+}
+
+private function MaybeModifyForChainShot(XComGameState_Ability Ability, out float fHitChance)
+{
+	local float fMissChance;
+
+	if(Ability.GetMyTemplateName() == 'ChainShot' || Ability.GetMyTemplateName() == 'ChainShot2')
+	{
+		// In this mod, Chain Shot will always fire twice which makes it slightly stronger than intended.
+		// We have to fix the dealt damage by lowering the Hit Chance with a multiplier of exactly 1.0 - (fMissChance / 2).
+		fMissChance = 1.0 - fHitChance;
+		fHitChance *= (1.0 - fMissChance / 2.0);
+	}
 }
 
 private function int GetDamageOnMiss(XComGameState_Ability Ability)
@@ -376,7 +391,7 @@ private function int GetArmorMitigation(StateObjectReference TargetRef, optional
 }
 
 private function LogFloat(string Message, float Number, optional bool Condition = true)
-{	
+{
 	local string Rounded;
 	Rounded = string(int(Number * 100) / 100.0f);
 	`Log(Message @ Left(Rounded, Len(Rounded) - 2), Condition);
