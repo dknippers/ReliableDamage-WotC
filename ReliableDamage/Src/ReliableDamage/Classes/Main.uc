@@ -100,6 +100,8 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		ToggleCondition = new class'X2Condition_Toggle_RD';
 		ToggleCondition.Succeed = false;
 		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
+		ApplyWeaponDamage.bAppliesDamage = false;
+		ApplyWeaponDamage.bApplyOnHit = false;
 
 		// Supply it to the modified ApplyWeaponDamage as we want to be able to
 		// toggle it on demand later when necessary.
