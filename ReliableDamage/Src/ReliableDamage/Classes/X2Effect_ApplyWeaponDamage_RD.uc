@@ -61,8 +61,9 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState)
 {
-	local int iDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit;
-	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fDamage, fDamageOnHit, fDamageOnMiss, fDamageOnCrit, fShred, fRupture;
+	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iDamageOnGraze;
+	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fTotalDamage, fDamageOnHit, fDamageOnMiss, fDamageOnCrit, fDamageOnGraze, fShred, fRupture;
+	local XComGameState_Ability Ability;
 
 	// Calculate damage as usual
 	iDamageOnHit = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
@@ -76,46 +77,91 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
 
-	`Log("IN Damage" @ iDamageOnHit);	
+	`Log("IN Damage" @ iDamageOnHit);
 	`Log("IN Rupture" @ NewRupture, NewRupture > 0);
 	`Log("IN Shred" @ NewShred, NewShred > 0);
 
-	// Update calculated damage based on hit chance
-	fHitChance = GetHitChance(GetAbility(ApplyEffectParameters.AbilityStateObjectRef), ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
+	Ability = GetAbility(ApplyEffectParameters.AbilityStateObjectRef);
+
+	fHitChance = GetHitChance(Ability, ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
+	fMissChance = 1.0f - fHitChance;
+
 	fDamageOnHit = fHitChance * iDamageOnHit;
 
-	iDamageOnMiss = GetDamageOnMiss(GetAbility(ApplyEffectParameters.AbilityStateObjectRef));
-	fMissChance = 1.0f - fHitChance;
+	iDamageOnMiss = GetDamageOnMiss(Ability);	
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
-	iDamageOnCrit = GetDamageOnCrit(ApplyEffectParameters, AppliedDamageTypes);
-	fDamageOnCrit = fCritChance * iDamageOnCrit;
+	iDamageOnCrit = GetDamageOnCrit(Ability, ApplyEffectParameters.TargetStateObjectRef);
+	fDamageOnCrit = fCritChance * iDamageOnCrit;	
 
-	fDamage = fDamageOnHit + fDamageOnMiss + fDamageOnCrit;
+	// Note this should be negative number; a Graze hit reduces damage taken
+	iDamageOnGraze = (iDamageOnHit * GRAZE_DMG_MULT) - iDamageOnHit;
+	fDamageOnGraze = fGrazeChance * iDamageOnGraze;
+
+	fTotalDamage = fDamageOnHit + fDamageOnMiss + fDamageOnCrit + fDamageOnGraze;
 
 	fRupture = fHitChance * NewRupture;
 	fShred = fHitChance * NewShred;
 
-	iDamage = RollForInt(fDamage);
+	iTotalDamage = RollForInt(fTotalDamage);
 	NewRupture = RollForInt(fRupture);
 	NewShred = RollForInt(fShred);
 
-	`Log("fHitChance" @ fHitChance);	
-	`Log("fDamageOnHit" @ fDamageOnHit, fDamageOnMiss > 0);
-	`Log("fDamageOnMiss" @ fDamageOnMiss, fDamageOnMiss > 0);
-	`Log("fCritChance" @ fCritChance, fDamageOnCrit > 0);
-	`Log("iDamageOnCrit" @ iDamageOnCrit, fDamageOnCrit > 0);
-	`Log("fDamageOnCrit" @ fDamageOnCrit, fDamageOnCrit > 0);	
-	`Log("fDamage" @ fDamage);
+	`Log("fHitChance" @ fHitChance);
+	`Log("fDamageOnHit" @ fDamageOnHit, fDamageOnHit != 0);
+	`Log("fDamageOnMiss" @ fDamageOnMiss, fDamageOnMiss != 0);
+	`Log("fDamageOnCrit" @ fDamageOnCrit, fDamageOnCrit != 0);
+	`Log("fDamageOnGraze" @ fDamageOnGraze, fDamageOnGraze != 0);
+	`Log("fTotalDamage" @ fTotalDamage);
 
-	`Log("OUT Damage" @ iDamage);
+	`Log("OUT Damage" @ iTotalDamage);
 	`Log("OUT Rupture" @ NewRupture, fRupture > 0);
 	`Log("OUT Shred" @ NewShred, fShred > 0);
 
 	`Log("</ReliableDamage.Damage>");
 	`Log("");
 
-	return iDamage;
+	return iTotalDamage;
+}
+
+simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
+{
+	local float fHitChance, fMinDamage, fMaxDamage, fMissChance, fDamageOnMiss, fDamageOnCrit, fMinDamageOnGraze, fMaxDamageOnGraze, fCritChance, fGrazeChance;
+	local int iArmorMitigation, iMinDamage, iMaxDamage, iMinDamageOnGraze, iMaxDamageOnGraze;
+
+	// Default behavior
+	super.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
+
+	fHitChance = GetHitChance(AbilityState, TargetRef, fCritChance, fGrazeChance);
+	fMissChance = 1.0f - fHitChance;
+	fDamageOnMiss = fMissChance * GetDamageOnMiss(AbilityState);
+	fDamageOnCrit = fCritChance * GetDamageOnCrit(AbilityState, TargetRef);
+
+	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
+
+	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation);
+	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation);
+
+	fMinDamage = fHitChance * iMinDamage;
+	fMaxDamage = fHitChance * iMaxDamage;
+
+	iMinDamageOnGraze = (iMinDamage * GRAZE_DMG_MULT) - iMinDamage;
+	iMaxDamageOnGraze = (iMaxDamage * GRAZE_DMG_MULT) - iMaxDamage;
+
+	fMinDamageOnGraze = fGrazeChance * iMinDamageOnGraze;
+	fMaxDamageOnGraze = fGrazeChance * iMaxDamageOnGraze;
+
+	// Damage
+	MinDamagePreview.Damage = iArmorMitigation + FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fMinDamageOnGraze);
+	MaxDamagePreview.Damage = iArmorMitigation + FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fMaxDamageOnGraze);
+
+	// Rupture
+	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
+	MaxDamagePreview.Rupture = FCeil(fHitChance * MaxDamagePreview.Rupture);
+
+	// Shred
+	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
+	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
 }
 
 private function float GetHitChance(XComGameState_Ability Ability, StateObjectReference TargetRef, optional out float fCritChance, optional out float fGrazeChance)
@@ -164,10 +210,9 @@ private function int GetDamageOnMiss(XComGameState_Ability Ability)
 	return iDamageOnHitOnMiss;
 }
 
-private function int GetDamageOnCrit(const EffectAppliedData ApplyEffectParameters, array<Name> AppliedDamageTypes)
+private function int GetDamageOnCrit(XComGameState_Ability Ability, StateObjectReference TargetRef)
 {
 	local ApplyDamageInfo DamageInfo;
-	local XComGameState_Ability Ability;
 	local XComGameState_Item SourceWeapon;
 	local XComGameState_Unit SourceUnit, TargetUnit;
 	local Damageable Damageable;
@@ -175,35 +220,54 @@ private function int GetDamageOnCrit(const EffectAppliedData ApplyEffectParamete
 	local StateObjectReference EffectRef;
 	local X2Effect_Persistent EffectTemplate;
 	local int iCritDamage;
+	local EffectAppliedData TestEffectData;
+	local array<name> AppliedDamageTypes;
 
-	Ability = GetAbility(ApplyEffectParameters.AbilityStateObjectRef);
+	AppliedDamageTypes.Length = 0;
+	TestEffectData = CreateTestEffectData(Ability, TargetRef);
 	SourceWeapon = GetWeapon(Ability);
-	SourceUnit = GetUnit(ApplyEffectParameters.SourceStateObjectRef);
-	TargetUnit = GetUnit(ApplyEffectParameters.TargetStateObjectRef);
+	SourceUnit = GetUnit(Ability.OwnerStateObject);
+	TargetUnit = GetUnit(TargetRef);
 	Damageable = Damageable(TargetUnit);
 
 	super.CalculateDamageValues(SourceWeapon, SourceUnit, TargetUnit, Ability, DamageInfo, AppliedDamageTypes);
 
 	iCritDamage = SumCrit(DamageInfo);
 
-	ChangeHitResults(ApplyEffectParameters.AbilityResultContext, eHit_Success, eHit_Crit);
+	ChangeHitResults(TestEffectData.AbilityResultContext, eHit_Success, eHit_Crit);
 
 	foreach SourceUnit.AffectedByEffects(EffectRef)
 	{
 		Effect = XComGameState_Effect(GetGameStateObject(EffectRef));
 		EffectTemplate = Effect.GetX2Effect();
-		iCritDamage += EffectTemplate.GetAttackingDamageModifier(Effect, SourceUnit, Damageable, Ability, ApplyEffectParameters, 0);
+		iCritDamage += EffectTemplate.GetAttackingDamageModifier(Effect, SourceUnit, Damageable, Ability, TestEffectData, 0);
 	}
-
-	ChangeHitResults(ApplyEffectParameters.AbilityResultContext, eHit_Crit, eHit_Success);
 
 	return iCritDamage;
 }
 
+private function EffectAppliedData CreateTestEffectData(XComGameState_Ability Ability, StateObjectReference TargetRef)
+{
+	local EffectAppliedData TestEffectData;
+	local XComGameState_Unit SourceUnit;
+
+	SourceUnit = GetUnit(Ability.OwnerStateObject);
+	TestEffectData.AbilityInputContext.AbilityRef = Ability.GetReference();
+	TestEffectData.AbilityInputContext.AbilityTemplateName = Ability.GetMyTemplateName();
+	TestEffectData.ItemStateObjectRef = Ability.SourceWeapon;
+	TestEffectData.AbilityStateObjectRef = Ability.GetReference();
+	TestEffectData.SourceStateObjectRef = SourceUnit.GetReference();
+	TestEffectData.PlayerStateObjectRef = SourceUnit.ControllingPlayer;
+	TestEffectData.TargetStateObjectRef = TargetRef;
+	TestEffectData.AbilityInputContext.PrimaryTarget = TargetRef;
+
+	return TestEffectData;
+}
+
 private function int SumCrit(ApplyDamageInfo DamageInfo)
 {
-	return 
-		DamageInfo.BaseDamageValue.Crit + 
+	return
+		DamageInfo.BaseDamageValue.Crit +
 		DamageInfo.ExtraDamageValue.Crit +
 		DamageInfo.BonusEffectDamageValue.Crit +
 		DamageInfo.AmmoDamageValue.Crit +
@@ -232,7 +296,7 @@ private function XComGameState_BaseObject GetGameStateObject(StateObjectReferenc
 	return `XCOMHISTORY.GetGameStateForObjectID(ObjectRef.ObjectID);
 }
 
-private function ChangeHitResults(AbilityResultContext ResultContext, EAbilityHitResult ChangeFrom, EAbilityHitResult ChangeTo)
+private function ChangeHitResults(out AbilityResultContext ResultContext, EAbilityHitResult ChangeFrom, EAbilityHitResult ChangeTo)
 {
 	local int i;
 
@@ -246,7 +310,7 @@ private function ChangeHitResults(AbilityResultContext ResultContext, EAbilityHi
 		if(ResultContext.MultiTargetHitResults[i] == ChangeFrom)
 		{
 			ResultContext.MultiTargetHitResults[i] = ChangeTo;
-		}	
+		}
 	}
 }
 
@@ -259,36 +323,6 @@ private function int RollForInt(float Value)
 
 	MaxValueChance = Round((Value - MinValue) * 100);
 	return `SYNC_RAND(100) < MaxValueChance ? MaxValue : MinValue;
-}
-
-simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
-{
-	local float fHitChance, fMissChance, fDamageOnMiss;
-	local int iArmorMitigation, iMinDamage, iMaxDamage;
-
-	// Default behavior
-	super.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
-
-	fHitChance = GetHitChance(AbilityState, TargetRef);
-	fMissChance = 1.0f - fHitChance;
-	fDamageOnMiss = fMissChance * GetDamageOnMiss(AbilityState);
-
-	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
-
-	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation);
-	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation);
-
-	// Damage
-	MinDamagePreview.Damage = iArmorMitigation + FFloor(fDamageOnMiss + fHitChance * iMinDamage);
-	MaxDamagePreview.Damage = iArmorMitigation + FCeil(fDamageOnMiss + fHitChance * iMaxDamage);
-
-	// Rupture
-	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
-	MaxDamagePreview.Rupture = FCeil(fHitChance * MaxDamagePreview.Rupture);
-
-	// Shred
-	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
-	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
 }
 
 private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Damage = 0, optional int Pierce = 0)
