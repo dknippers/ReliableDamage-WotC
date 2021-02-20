@@ -2,8 +2,6 @@ class X2Effect_ApplyWeaponDamage_RD extends X2Effect_ApplyWeaponDamage;
 
 var X2Effect_ApplyWeaponDamage Original;
 
-var X2Condition_Toggle_RD OriginalToggleCondition;
-
 struct AbilityGameStateContext
 {
 	var StateObjectReference AbilityRef;
