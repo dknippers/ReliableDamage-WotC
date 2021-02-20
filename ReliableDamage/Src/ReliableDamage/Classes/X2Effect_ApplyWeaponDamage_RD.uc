@@ -90,9 +90,9 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
 	`Log("Target:" @ AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetName(eNameType_FullNick) : string(AbilityContext.TargetObject.Class));
 
-	`Log("IN Damage" @ iDamageOnHit);
-	`Log("IN Rupture" @ NewRupture, NewRupture > 0);
-	`Log("IN Shred" @ NewShred, NewShred > 0);
+	LogInt("IN Damage", iDamageOnHit);
+	LogInt("IN Rupture", NewRupture, NewRupture != 0);
+	LogInt("IN Shred", NewShred, NewShred != 0);
 
 	fHitChance = GetHitChance(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
 	fMissChance = 1.0f - fHitChance;
@@ -118,18 +118,18 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	NewRupture = RollForInt(fRupture);
 	NewShred = RollForInt(fShred);
 
-	`Log("fHitChance" @ fHitChance);
-	`Log("fDamageOnHit" @ fDamageOnHit, fDamageOnHit != 0);
-	`Log("fDamageOnMiss" @ fDamageOnMiss, fDamageOnMiss != 0);
-	`Log("fDamageOnCrit" @ fDamageOnCrit, fDamageOnCrit != 0);
-	`Log("fDamageOnGraze" @ fDamageOnGraze, fDamageOnGraze != 0);
-	`Log("fTotalDamage" @ fTotalDamage);
-	`Log("fRupture" @ fRupture, NewRupture > 0);
-	`Log("fShred" @ fShred, NewShred > 0);
+	LogHitChance("fHitChance", fHitChance);
+	LogFloat("fDamageOnHit", fDamageOnHit, fDamageOnMiss != 0 || fDamageOnCrit != 0 || fDamageOnGraze != 0);
+	LogFloat("fDamageOnMiss", fDamageOnMiss, fDamageOnMiss != 0);
+	LogFloat("fDamageOnCrit", fDamageOnCrit, fDamageOnCrit != 0);
+	LogFloat("fDamageOnGraze", fDamageOnGraze, fDamageOnGraze != 0);
+	LogFloat("fTotalDamage", fTotalDamage);
+	LogFloat("fRupture", fRupture, NewRupture != 0);
+	LogFloat("fShred", fShred, NewShred != 0);
 
-	`Log("OUT Damage" @ iTotalDamage);
-	`Log("OUT Rupture" @ NewRupture, fRupture > 0);
-	`Log("OUT Shred" @ NewShred, fShred > 0);
+	LogInt("OUT Damage", iTotalDamage);
+	LogInt("OUT Rupture", NewRupture, fRupture != 0);
+	LogInt("OUT Shred", NewShred, fShred != 0);
 
 	`Log("</ReliableDamage.Damage>");
 	`Log("");
@@ -373,4 +373,21 @@ private function int GetArmorMitigation(StateObjectReference TargetRef, optional
 	iArmorMitigation = Max(0, iArmorMitigation - Pierce);
 
 	return iArmorMitigation;
+}
+
+private function LogFloat(string Message, float Number, optional bool Condition = true)
+{	
+	local string Rounded;
+	Rounded = string(int(Number * 100) / 100.0f);
+	`Log(Message @ Left(Rounded, Len(Rounded) - 2), Condition);
+}
+
+private function LogInt(string Message, int Number, optional bool Condition = true)
+{
+	`Log(Message @ Number, Condition);
+}
+
+private function LogHitChance(string Message, float HitChance, optional bool Condition = true)
+{
+	`Log(Message @ int(HitChance * 100) $ "%", Condition);
 }
