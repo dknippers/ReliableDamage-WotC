@@ -4,13 +4,10 @@ var X2Effect_ApplyWeaponDamage Original;
 
 struct AbilityGameStateContext
 {
-	var StateObjectReference AbilityRef;
-	var StateObjectReference SourceRef;
-	var StateObjectReference TargetRef;
-
 	var XComGameState_Ability Ability;
 	var XComGameState_Unit SourceUnit;
 	var XComGameState_Item SourceWeapon;
+	var XComGameState_BaseObject TargetObject;
 	var XComGameState_Unit TargetUnit;
 };
 
@@ -97,7 +94,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("IN Rupture" @ NewRupture, NewRupture > 0);
 	`Log("IN Shred" @ NewShred, NewShred > 0);
 
-	fHitChance = GetHitChance(AbilityContext.Ability, AbilityContext.TargetRef, fCritChance, fGrazeChance);
+	fHitChance = GetHitChance(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
 	fMissChance = 1.0f - fHitChance;
 
 	fDamageOnHit = fHitChance * iDamageOnHit;
@@ -105,7 +102,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
-	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, AbilityContext.TargetRef);
+	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef);
 	fDamageOnCrit = fCritChance * iDamageOnCrit;
 
 	// Note this should be negative number; a Graze hit reduces damage taken
@@ -297,14 +294,11 @@ private function AbilityGameStateContext GetAbilityContext(StateObjectReference 
 
 	Ability = GetAbility(AbilityRef);
 
-	Context.AbilityRef = AbilityRef;
-	Context.SourceRef = Ability.OwnerStateObject;
-	Context.TargetRef = TargetRef;
-
 	Context.Ability = Ability;
 	Context.SourceUnit = GetUnit(Ability.OwnerStateObject);
 	Context.SourceWeapon = GetWeapon(Ability);
-	Context.TargetUnit = GetUnit(TargetRef);
+	Context.TargetObject = GetGameStateObject(TargetRef);
+	Context.TargetUnit = XComGameState_Unit(Context.TargetObject);
 
 	return Context;
 }
