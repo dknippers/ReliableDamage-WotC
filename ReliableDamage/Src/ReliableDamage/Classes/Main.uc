@@ -12,14 +12,19 @@ function InitReliableDamage()
 		RemoveDamageSpreadFromWeapons();
 	}
 
+	`Log("");
+	`Log("<ReliableDamage.ReplaceWeaponEffects>");
+
 	ForEachAbilityTemplate(MaybeUpdateAbility);
+
+	`Log("</ReliableDamage.ReplaceWeaponEffects>");
+	`Log("");
 }
 
 private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 {
 	local X2AbilityToHitCalc_StandardAim StandardAim;
-	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
-	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;
+	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;	
 
 	// We only change abilities that use StandardAim
 	StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
@@ -35,17 +40,7 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 
 	if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
 
-	// Replace Single Target Weapon Effects
-	bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
-
-	// Replace Multi Target Weapon Effects
-	bMultiTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, false);
-
-	// If a single and/or multi weapon effect was replaced, use our StandardAim for this Ability.
-	// We require a weapon effect since we don't want to use our Reliable Damage
-	// for abilities (like Viper's Get Over Here) that use StandardAim but do not have
-	// an Apply Weapon Damage Effect.
-	if(bSingleTargetEffectWasReplaced || bMultiTargetEffectWasReplaced)
+	if(ReplaceWeaponEffects(AbilityTemplate))
 	{
 		// Any Knockback effect should always run last, otherwise it will be interrupted by another effect
 		// If we have replaced a single or multi effect (by adding our effect last in the list), we therefore
@@ -58,94 +53,76 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 		StandardAim_RD.Clone(StandardAim);
 
 		AbilityTemplate.AbilityToHitCalc = StandardAim_RD;
-	}
+	}	
 }
 
-private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bool bIsSingle)
+private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate)
 {
-	local X2Effect TargetEffect;
-	local array<X2Effect> TargetEffects;
-	local X2Condition_Toggle_RD ToggleCondition;
-	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
-	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
+	local X2Effect TargetEffect;	
 	local bool bMadeReplacements;
-	local int iMultiEffectIndex;
-	local string LogMessage;
 
-	bMadeReplacements = false;
-
-	// Single Target and Multi Target effects are stored in different Arrays
-	TargetEffects = bIsSingle ? AbilityTemplate.AbilityTargetEffects : AbilityTemplate.AbilityMultiTargetEffects;
-
-	foreach TargetEffects(TargetEffect)
+	// Replace both single target and multi target effects
+	foreach AbilityTemplate.AbilityTargetEffects(TargetEffect)
 	{
-		// Only look at Effects that work on hit and deal damage
-		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
-
-		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
-		if(ApplyWeaponDamage == None) continue;
-
-		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
-
-		// Already replaced by us, ignore.
-		if(ApplyWeaponDamage_RD != None) continue;
-
-		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
-		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
-
-		// Disable the original ApplyWeaponDamage effect by adding a condition we can
-		// switch on or off at will. We cannot remove it from the Effects as it is readonly.
-		ToggleCondition = new class'X2Condition_Toggle_RD';
-		ToggleCondition.Succeed = false;
-
-		// Disable the original damage effect
-		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
-		ApplyWeaponDamage.bAppliesDamage = false;
-		ApplyWeaponDamage.bApplyOnHit = false;
-
-		if(bIsSingle)
+		if(ReplaceWeaponEffect(AbilityTemplate, TargetEffect, true))
 		{
-			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);
+			bMadeReplacements = true;
 		}
-		else
+	}		
+
+	foreach AbilityTemplate.AbilityMultiTargetEffects(TargetEffect)
+	{
+		if(ReplaceWeaponEffect(AbilityTemplate, TargetEffect, false))
 		{
-			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
+			bMadeReplacements = true;
 		}
-
-		bMadeReplacements = true;
-
-		LogMessage = "ReliableDamage:";
-
-		// It happens that the same ApplyWeaponDamage instance is used as both a Single Target
-		// and a Multi Target effect. We replace Single Target effects first, so we only have to look
-		// if a found Single Effect is used as a Multi Effect as well
-		if(bIsSingle)
-		{
-			LogMessage @= "Single";
-
-			iMultiEffectIndex = AbilityTemplate.AbilityMultiTargetEffects.Find(ApplyWeaponDamage);
-			if(iMultiEffectIndex >= 0)
-			{
-				// It was also used as a Multi Effect.
-				// That effect is the same instance as ApplyWeaponDamage,
-				// so it is already disabled. The only thing left is to
-				// add our RD version to the Multi Effects as well.
-				AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
-
-				LogMessage @= "and Multi";
-			}
-		}
-		else
-		{
-			LogMessage @= "Multi";
-		}
-
-		LogMessage @= "Effect added to" @ AbilityTemplate.DataName @ "to replace" @ ApplyWeaponDamage;
-
-		`Log(LogMessage);
 	}
 
 	return bMadeReplacements;
+}
+
+private function bool ReplaceWeaponEffect(X2AbilityTemplate AbilityTemplate, X2Effect TargetEffect, bool bIsSingleTargetEffect)
+{
+	local X2Condition_Toggle_RD ToggleCondition;
+	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
+	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
+
+	// Only look at Effects that work on hit and deal damage
+	if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) return false;
+
+	ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
+	if(ApplyWeaponDamage == None) return false;
+
+	ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
+
+	// Already replaced by us, ignore.
+	if(ApplyWeaponDamage_RD != None) return false;
+
+	ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
+	ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
+
+	// Disable the original ApplyWeaponDamage effect by adding a condition we can
+	// switch on or off at will. We cannot remove it from the Effects as it is readonly.
+	ToggleCondition = new class'X2Condition_Toggle_RD';
+	ToggleCondition.Succeed = false;
+
+	// Disable the original damage effect
+	ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
+	ApplyWeaponDamage.bAppliesDamage = false;
+	ApplyWeaponDamage.bApplyOnHit = false;
+
+	if(bIsSingleTargetEffect)
+	{
+		AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);
+	}
+	else 
+	{
+		AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
+	}
+
+	`Log(AbilityTemplate.DataName $ "." $ ApplyWeaponDamage.Class);
+
+	return true;
 }
 
 // Make sure Knockback Effects are present at the end of the list of Effects,
@@ -200,7 +177,7 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2DataTemplate DataTemplate;
 	local array<X2DataTemplate> DataTemplates;
 
-	`Log("Reliable Damage: Removing Damage Spread");
+	`Log("<ReliableDamage.RemoveDamageSpread />");
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;
@@ -209,9 +186,7 @@ private function RemoveDamageSpreadFromWeapons()
 	foreach ItemTemplateManager.IterateTemplates(DataTemplate)
 	{
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
-		if(WeaponTemplate == None) continue;
-
-		`Log("Removing spread from" @ WeaponTemplate.DataName);
+		if(WeaponTemplate == None) continue;		
 
 		ItemTemplateManager.FindDataTemplateAllDifficulties(WeaponTemplate.DataName, DataTemplates);
 
