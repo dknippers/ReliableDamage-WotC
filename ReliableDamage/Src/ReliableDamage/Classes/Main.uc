@@ -228,13 +228,11 @@ private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate)
 {
 	local WeaponDamageValue ExtraDamage;
 
-	WeaponTemplate.BaseDamage.Spread = 0;
-	WeaponTemplate.BaseDamage.PlusOne = 0;
+	WeaponTemplate.BaseDamage.Spread = 0;	
 
 	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
 	{
-		ExtraDamage.Spread = 0;
-		ExtraDamage.PlusOne = 0;
+		ExtraDamage.Spread = 0;		
 	}
 }
 
