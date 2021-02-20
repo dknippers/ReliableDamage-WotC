@@ -88,11 +88,11 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 
 	fDamageOnHit = fHitChance * iDamageOnHit;
 
-	iDamageOnMiss = GetDamageOnMiss(Ability);	
+	iDamageOnMiss = GetDamageOnMiss(Ability);
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
 	iDamageOnCrit = GetDamageOnCrit(Ability, ApplyEffectParameters.TargetStateObjectRef);
-	fDamageOnCrit = fCritChance * iDamageOnCrit;	
+	fDamageOnCrit = fCritChance * iDamageOnCrit;
 
 	// Note this should be negative number; a Graze hit reduces damage taken
 	iDamageOnGraze = (iDamageOnHit * GRAZE_DMG_MULT) - iDamageOnHit;
@@ -113,6 +113,8 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("fDamageOnCrit" @ fDamageOnCrit, fDamageOnCrit != 0);
 	`Log("fDamageOnGraze" @ fDamageOnGraze, fDamageOnGraze != 0);
 	`Log("fTotalDamage" @ fTotalDamage);
+	`Log("fRupture" @ fRupture, NewRupture > 0);
+	`Log("fShred" @ fShred, NewShred > 0);
 
 	`Log("OUT Damage" @ iTotalDamage);
 	`Log("OUT Rupture" @ NewRupture, fRupture > 0);
