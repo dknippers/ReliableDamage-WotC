@@ -88,7 +88,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 
 	`Log("Source:" @ AbilityContext.SourceUnit.GetName(eNameType_FullNick));
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
-	if(AbilityContext.TargetUnit != None) `Log("Target:" @ AbilityContext.TargetUnit.GetName(eNameType_FullNick));
+	`Log("Target:" @ AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetName(eNameType_FullNick) : string(AbilityContext.TargetObject.Class));
 
 	`Log("IN Damage" @ iDamageOnHit);
 	`Log("IN Rupture" @ NewRupture, NewRupture > 0);
