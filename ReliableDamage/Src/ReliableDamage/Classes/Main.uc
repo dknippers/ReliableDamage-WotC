@@ -1,13 +1,13 @@
-class Main extends Object config(ReliableDamage);
+class Main extends Object;
 
-var config bool RemoveDamageSpread;
+var const Configuration Configuration;
 
 delegate WithEffect(X2Effect Effect);
 delegate WithAbilityTemplate(X2AbilityTemplate AbilityTemplate);
 
 function InitReliableDamage()
 {
-	if(RemoveDamageSpread)
+	if(Configuration.RemoveDamageSpread)
 	{
 		RemoveDamageSpreadFromWeapons();
 	}
@@ -39,7 +39,7 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 	// Making those abilities hit 100% of the time is extremely imbalanced.
 	if(HasDisplacementEffect(AbilityTemplate)) return;
 
-	if(RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
+	if(Configuration.RemoveDamageSpread) RemoveDamageSpreadFromAbility(AbilityTemplate);
 
 	// Replace Single Target Weapon Effects
 	bSingleTargetEffectWasReplaced = ReplaceWeaponEffects(AbilityTemplate, true);
@@ -89,7 +89,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
 		if(ApplyWeaponDamage == None) continue;
 
-		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);		
+		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 		if(ApplyWeaponDamage_RD != None) continue;
 
 		ApplyWeaponDamage_RD = CloneWeaponDamage(ApplyWeaponDamage);
@@ -103,13 +103,13 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 			if(AbilityTemplate.AbilityMultiTargetEffects.Find(ApplyWeaponDamage) >= 0)
 			{
 				// The same instance of ApplyWeaponDamage was also used as a Multi Effect.
-				// It is already disabled so we just add our RD version as a Multi Effect.								
+				// It is already disabled so we just add our RD version as a Multi Effect.
 				AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
 				bIsSingleAndMulti = true;
 			}
 		}
 		else
-		{			
+		{
 			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
 		}
 
@@ -272,4 +272,11 @@ private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) 
 	}
 
 	return false;
+}
+
+defaultproperties
+{
+	Begin Object Class=Configuration Name=DefaultConfiguration
+	End Object
+	Configuration=DefaultConfiguration
 }
