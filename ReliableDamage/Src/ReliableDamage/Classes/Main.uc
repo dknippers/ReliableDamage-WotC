@@ -71,7 +71,6 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 {
 	local X2Effect TargetEffect;
 	local array<X2Effect> TargetEffects;
-	local X2Condition_Toggle_RD ToggleCondition;
 	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
 	local bool bMadeReplacements, bIsSingleAndMulti;
@@ -90,25 +89,12 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
 		if(ApplyWeaponDamage == None) continue;
 
-		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
-
-		// Already replaced by us, ignore.
+		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);		
 		if(ApplyWeaponDamage_RD != None) continue;
 
+		ApplyWeaponDamage_RD = CloneWeaponDamage(ApplyWeaponDamage);
+
 		bIsSingleAndMulti = false;
-
-		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
-		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
-
-		// Disable the original ApplyWeaponDamage effect by adding a condition we can
-		// switch on or off at will. We cannot remove it from the Effects as it is readonly.
-		ToggleCondition = new class'X2Condition_Toggle_RD';
-		ToggleCondition.Succeed = false;
-
-		// Disable the original damage effect
-		ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
-		ApplyWeaponDamage.bAppliesDamage = false;
-		ApplyWeaponDamage.bApplyOnHit = false;
 
 		if(bIsSingle)
 		{
@@ -117,15 +103,19 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 			if(AbilityTemplate.AbilityMultiTargetEffects.Find(ApplyWeaponDamage) >= 0)
 			{
 				// The same instance of ApplyWeaponDamage was also used as a Multi Effect.
-				// It is already disabled so we just add our RD version as a Multi Effect.
+				// It is already disabled so we just add our RD version as a Multi Effect.								
 				AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
 				bIsSingleAndMulti = true;
 			}
 		}
 		else
-		{
+		{			
 			AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
 		}
+
+		// The original cannot actually be removed from the list of target effects
+		// so we will disable it instead.
+		DisableWeaponDamage(ApplyWeaponDamage);
 
 		bMadeReplacements = true;
 
@@ -134,6 +124,29 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 	}
 
 	return bMadeReplacements;
+}
+
+private function X2Effect_ApplyWeaponDamage_RD CloneWeaponDamage(X2Effect_ApplyWeaponDamage ApplyWeaponDamage)
+{
+	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
+
+	ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
+	ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
+
+	return ApplyWeaponDamage_RD;
+}
+
+private function DisableWeaponDamage(X2Effect_ApplyWeaponDamage ApplyWeaponDamage)
+{
+	local X2Condition_Toggle_RD ToggleCondition;
+
+	ToggleCondition = new class'X2Condition_Toggle_RD';
+	ToggleCondition.Succeed = false;
+
+	ApplyWeaponDamage.TargetConditions.AddItem(ToggleCondition);
+	ApplyWeaponDamage.bAppliesDamage = false;
+	ApplyWeaponDamage.bApplyOnHit = false;
+	ApplyWeaponDamage.HideVisualizationOfResultsAdditional.AddItem('AA_Success');
 }
 
 // Make sure Knockback Effects are present at the end of the list of Effects,

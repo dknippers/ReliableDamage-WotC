@@ -340,7 +340,7 @@ private function XComGameState_Ability GetAbility(StateObjectReference AbilityRe
 private function XComGameState_BaseObject GetGameStateObject(StateObjectReference ObjectRef, optional XComGameState NewGameState)
 {
 	local XComGameState_BaseObject GameStateObject;
-	
+
 	// First try to read from NewGameState and otherwise fall back to History.
 	if(NewGameState != None) GameStateObject = NewGameState.GetGameStateForObjectID(ObjectRef.ObjectID);
 	return GameStateObject != None ? GameStateObject : `XCOMHISTORY.GetGameStateForObjectID(ObjectRef.ObjectID);
@@ -418,4 +418,34 @@ private function LogUnit(string Message, XComGameState_Unit Unit)
 	local name SoldierClass;
 	SoldierClass = Unit.GetSoldierClassTemplateName();
 	`Log(Message @ "[" $ (SoldierClass != '' ? SoldierClass : Unit.GetMyTemplateName()) $ "]" @ Unit.GetName(eNameType_FullNick));
+}
+
+simulated function AddX2ActionsForVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, name EffectApplyResult)
+{
+	local XComGameStateVisualizationMgr VisualizationMgr;
+	local array<X2Action> Actions;
+	local X2Action Action;
+	local X2Action_ApplyWeaponDamageToUnit ApplyWeaponDamageAction;
+
+	VisualizationMgr = `XCOMVISUALIZATIONMGR;
+	VisualizationMgr.GetNodesOfType(VisualizationMgr.BuildVisTree, class'X2Action_ApplyWeaponDamageToUnit', Actions);
+
+	foreach Actions(Action)
+	{
+		ApplyWeaponDamageAction = X2Action_ApplyWeaponDamageToUnit(Action);
+		if(ApplyWeaponDamageAction == None) continue;
+
+		if(X2Effect_ApplyWeaponDamage_RD(ApplyWeaponDamageAction.OriginatingEffect) == None)
+		{
+			// Remove any instances of X2Action_ApplyWeaponDamageToUnit that were added by
+			// an X2Effect that is not X2Effect_ApplyWeaponDamage_RD.
+			// In practice this is to remove Actions added by the X2Effect_ApplyWeaponDamage
+			// that we have replaced but could not remove from the list of TargetEffects.
+			// This fix is necessary to prevent a RedScreen during Sharpshooter's Faceoff ability.
+			VisualizationMgr.DisconnectAction(Action);
+		}
+	}
+
+	// Default behavior
+	super.AddX2ActionsForVisualization(VisualizeGameState, ActionMetadata, EffectApplyResult);
 }

@@ -44,7 +44,7 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	}
 }
 
-private function bool ShouldChangeToHit(EAbilityHitResult HitResult) 
+private function bool ShouldChangeToHit(EAbilityHitResult HitResult)
 {
 	return HitResult == eHit_Miss || HitResult == eHit_Crit || HitResult == eHit_Graze;
 }
