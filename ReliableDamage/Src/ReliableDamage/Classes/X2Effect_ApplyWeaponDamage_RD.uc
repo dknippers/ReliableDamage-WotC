@@ -81,14 +81,14 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 		return iDamageOnHit;
 	}
 
-	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef);
+	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
 
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
 
 	`Log("Source:" @ AbilityContext.SourceUnit.GetName(eNameType_FullNick));
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
-	`Log("Weapon:" @ AbilityContext.SourceWeapon.GetMyTemplateName());
+	if(AbilityContext.SourceWeapon != None) `Log("Weapon:" @ AbilityContext.SourceWeapon.GetMyTemplateName());
 	`Log("Target:" @ AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetName(eNameType_FullNick) : string(AbilityContext.TargetObject.Class));
 
 	LogInt("IN Damage", iDamageOnHit);
@@ -103,7 +103,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
-	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef);
+	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
 	fDamageOnCrit = fCritChance * iDamageOnCrit;
 
 	// Note this should be negative number; a Graze hit reduces damage taken
@@ -239,7 +239,7 @@ private function int GetDamageOnMiss(XComGameState_Ability Ability)
 	return iDamageOnHitOnMiss;
 }
 
-private function int GetDamageOnCrit(XComGameState_Ability Ability, StateObjectReference TargetRef)
+private function int GetDamageOnCrit(XComGameState_Ability Ability, StateObjectReference TargetRef, optional XComGameState NewGameState)
 {
 	local ApplyDamageInfo DamageInfo;
 	local XComGameState_Item SourceWeapon;
@@ -255,8 +255,8 @@ private function int GetDamageOnCrit(XComGameState_Ability Ability, StateObjectR
 	AppliedDamageTypes.Length = 0;
 	TestEffectData = CreateTestEffectData(Ability, TargetRef);
 	SourceWeapon = GetWeapon(Ability);
-	SourceUnit = GetUnit(Ability.OwnerStateObject);
-	TargetUnit = GetUnit(TargetRef);
+	SourceUnit = GetUnit(Ability.OwnerStateObject, NewGameState);
+	TargetUnit = GetUnit(TargetRef, NewGameState);
 	Damageable = Damageable(TargetUnit);
 
 	super.CalculateDamageValues(SourceWeapon, SourceUnit, TargetUnit, Ability, DamageInfo, AppliedDamageTypes);
@@ -275,12 +275,12 @@ private function int GetDamageOnCrit(XComGameState_Ability Ability, StateObjectR
 	return iCritDamage;
 }
 
-private function EffectAppliedData CreateTestEffectData(XComGameState_Ability Ability, StateObjectReference TargetRef)
+private function EffectAppliedData CreateTestEffectData(XComGameState_Ability Ability, StateObjectReference TargetRef, optional XComGameState NewGameState)
 {
 	local EffectAppliedData TestEffectData;
 	local XComGameState_Unit SourceUnit;
 
-	SourceUnit = GetUnit(Ability.OwnerStateObject);
+	SourceUnit = GetUnit(Ability.OwnerStateObject, NewGameState);
 	TestEffectData.AbilityInputContext.AbilityRef = Ability.GetReference();
 	TestEffectData.AbilityInputContext.AbilityTemplateName = Ability.GetMyTemplateName();
 	TestEffectData.ItemStateObjectRef = Ability.SourceWeapon;
@@ -303,7 +303,7 @@ private function int SumCrit(ApplyDamageInfo DamageInfo)
 		DamageInfo.UpgradeDamageValue.Crit;
 }
 
-private function AbilityGameStateContext GetAbilityContext(StateObjectReference AbilityRef, StateObjectReference TargetRef)
+private function AbilityGameStateContext GetAbilityContext(StateObjectReference AbilityRef, StateObjectReference TargetRef, optional XComGameState NewGameState)
 {
 	local AbilityGameStateContext Context;
 	local XComGameState_Ability Ability;
@@ -311,9 +311,9 @@ private function AbilityGameStateContext GetAbilityContext(StateObjectReference 
 	Ability = GetAbility(AbilityRef);
 
 	Context.Ability = Ability;
-	Context.SourceUnit = GetUnit(Ability.OwnerStateObject);
+	Context.SourceUnit = GetUnit(Ability.OwnerStateObject, NewGameState);
 	Context.SourceWeapon = GetWeapon(Ability);
-	Context.TargetObject = GetGameStateObject(TargetRef);
+	Context.TargetObject = GetGameStateObject(TargetRef, NewGameState);
 	Context.TargetUnit = XComGameState_Unit(Context.TargetObject);
 
 	return Context;
@@ -326,19 +326,23 @@ private function XComGameState_Item GetWeapon(XComGameState_Ability Ability)
 		: Ability.GetSourceWeapon();
 }
 
-private function XComGameState_Unit GetUnit(StateObjectReference UnitRef)
+private function XComGameState_Unit GetUnit(StateObjectReference UnitRef, optional XComGameState NewGameState)
 {
-	return XComGameState_Unit(GetGameStateObject(UnitRef));
+	return XComGameState_Unit(GetGameStateObject(UnitRef, NewGameState));
 }
 
-private function XComGameState_Ability GetAbility(StateObjectReference AbilityRef)
+private function XComGameState_Ability GetAbility(StateObjectReference AbilityRef, optional XComGameState NewGameState)
 {
-	return XComGameState_Ability(GetGameStateObject(AbilityRef));
+	return XComGameState_Ability(GetGameStateObject(AbilityRef, NewGameState));
 }
 
-private function XComGameState_BaseObject GetGameStateObject(StateObjectReference ObjectRef)
+private function XComGameState_BaseObject GetGameStateObject(StateObjectReference ObjectRef, optional XComGameState NewGameState)
 {
-	return `XCOMHISTORY.GetGameStateForObjectID(ObjectRef.ObjectID);
+	local XComGameState_BaseObject GameStateObject;
+	
+	// First try to read from NewGameState and otherwise fall back to History.
+	if(NewGameState != None) GameStateObject = NewGameState.GetGameStateForObjectID(ObjectRef.ObjectID);
+	return GameStateObject != None ? GameStateObject : `XCOMHISTORY.GetGameStateForObjectID(ObjectRef.ObjectID);
 }
 
 private function ChangeHitResults(out AbilityResultContext ResultContext, EAbilityHitResult ChangeFrom, EAbilityHitResult ChangeTo)
