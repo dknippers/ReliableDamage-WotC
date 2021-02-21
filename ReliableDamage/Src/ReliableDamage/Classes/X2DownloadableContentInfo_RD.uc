@@ -1,9 +1,15 @@
 class X2DownloadableContentInfo_RD extends X2DownloadableContentInfo;
 
+var const Main Main;
+
 static event OnPostTemplatesCreated()
 {
-	local Main Main;
-	Main = new class'Main';
+	default.Main.InitReliableDamage();	
+}
 
-	Main.InitReliableDamage();
+defaultproperties
+{
+	Begin Object Class=Main Name=Main
+	End Object
+	Main=Main
 }
