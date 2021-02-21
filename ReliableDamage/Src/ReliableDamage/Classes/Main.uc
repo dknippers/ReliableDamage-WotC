@@ -276,7 +276,7 @@ private function bool ContainsDisplacementEffect(array<X2Effect> TargetEffects) 
 
 defaultproperties
 {
-	Begin Object Class=Configuration Name=DefaultConfiguration
+	Begin Object Class=Configuration Name=Configuration
 	End Object
-	Configuration=DefaultConfiguration
+	Configuration=Configuration
 }

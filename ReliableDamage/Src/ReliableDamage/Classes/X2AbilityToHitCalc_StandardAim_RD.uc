@@ -1,5 +1,7 @@
 class X2AbilityToHitCalc_StandardAim_RD extends X2AbilityToHitCalc_StandardAim;
 
+var const Configuration Configuration;
+
 // Copies all properties from the given X2AbilityToHitCalc_StandardAim
 function Clone(X2AbilityToHitCalc_StandardAim Source)
 {
@@ -46,5 +48,20 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 
 private function bool ShouldChangeToHit(EAbilityHitResult HitResult)
 {
-	return HitResult == eHit_Miss || HitResult == eHit_Crit || HitResult == eHit_Graze;
+	switch(HitResult)
+	{
+		case eHit_Miss: return true;
+
+		case ehit_Crit: return Configuration.AdjustCriticalHits;
+		case eHit_Graze: return Configuration.AdjustGrazeHits;
+
+		default: return false;
+	}	
+}
+
+defaultproperties
+{
+	Begin Object Class=Configuration Name=Configuration
+	End Object
+	Configuration=Configuration
 }

@@ -4,7 +4,7 @@ var const Main Main;
 
 static event OnPostTemplatesCreated()
 {
-	default.Main.InitReliableDamage();	
+	default.Main.InitReliableDamage();
 }
 
 defaultproperties

@@ -1,5 +1,7 @@
 class X2Effect_ApplyWeaponDamage_RD extends X2Effect_ApplyWeaponDamage;
 
+var const Configuration Configuration;
+
 var X2Effect_ApplyWeaponDamage Original;
 
 struct AbilityGameStateContext
@@ -105,11 +107,11 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	fDamageOnMiss = fMissChance * iDamageOnMiss;
 
 	iDamageOnCrit = GetDamageOnCrit(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
-	fDamageOnCrit = fCritChance * iDamageOnCrit;
+	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * iDamageOnCrit : 0.0f;
 
 	// Note this should be negative number; a Graze hit reduces damage taken
 	iDamageOnGraze = (iDamageOnHit * GRAZE_DMG_MULT) - iDamageOnHit;
-	fDamageOnGraze = fGrazeChance * iDamageOnGraze;
+	fDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iDamageOnGraze : 0.0f;
 
 	fTotalDamage = fDamageOnHit + fDamageOnMiss + fDamageOnCrit + fDamageOnGraze;
 
@@ -150,7 +152,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fHitChance = GetHitChance(AbilityState, TargetRef, fCritChance, fGrazeChance);
 	fMissChance = 1.0f - fHitChance;
 	fDamageOnMiss = fMissChance * GetDamageOnMiss(AbilityState);
-	fDamageOnCrit = fCritChance * GetDamageOnCrit(AbilityState, TargetRef);
+	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * GetDamageOnCrit(AbilityState, TargetRef) : 0.0f;
 
 	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
 
@@ -163,8 +165,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	iMinDamageOnGraze = (iMinDamage * GRAZE_DMG_MULT) - iMinDamage;
 	iMaxDamageOnGraze = (iMaxDamage * GRAZE_DMG_MULT) - iMaxDamage;
 
-	fMinDamageOnGraze = fGrazeChance * iMinDamageOnGraze;
-	fMaxDamageOnGraze = fGrazeChance * iMaxDamageOnGraze;
+	fMinDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMinDamageOnGraze : 0.0f;
+	fMaxDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMaxDamageOnGraze : 0.0f;
 
 	// Damage
 	MinDamagePreview.Damage = iArmorMitigation + FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fMinDamageOnGraze);
@@ -448,4 +450,11 @@ simulated function AddX2ActionsForVisualization(XComGameState VisualizeGameState
 
 	// Default behavior
 	super.AddX2ActionsForVisualization(VisualizeGameState, ActionMetadata, EffectApplyResult);
+}
+
+defaultproperties
+{
+	Begin Object Class=Configuration Name=Configuration
+	End Object
+	Configuration=Configuration
 }
