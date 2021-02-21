@@ -12,7 +12,13 @@ function InitReliableDamage()
 		RemoveDamageSpreadFromWeapons();
 	}
 
+	`Log("");
+	`Log("<ReliableDamage.ReplaceWeaponEffects>");
+
 	ForEachAbilityTemplate(MaybeUpdateAbility);
+
+	`Log("</ReliableDamage.ReplaceWeaponEffects>");
+	`Log("");
 }
 
 private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
@@ -68,9 +74,8 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 	local X2Condition_Toggle_RD ToggleCondition;
 	local X2Effect_ApplyWeaponDamage ApplyWeaponDamage;
 	local X2Effect_ApplyWeaponDamage_RD ApplyWeaponDamage_RD;
-	local bool bMadeReplacements;
-	local int iMultiEffectIndex;
-	local string LogMessage;
+	local bool bMadeReplacements, bIsSingleAndMulti;
+	local string LogPrefix;
 
 	bMadeReplacements = false;
 
@@ -90,6 +95,8 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		// Already replaced by us, ignore.
 		if(ApplyWeaponDamage_RD != None) continue;
 
+		bIsSingleAndMulti = false;
+
 		ApplyWeaponDamage_RD = new class'X2Effect_ApplyWeaponDamage_RD';
 		ApplyWeaponDamage_RD.Clone(ApplyWeaponDamage);
 
@@ -106,6 +113,14 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		if(bIsSingle)
 		{
 			AbilityTemplate.AddTargetEffect(ApplyWeaponDamage_RD);
+
+			if(AbilityTemplate.AbilityMultiTargetEffects.Find(ApplyWeaponDamage) >= 0)
+			{
+				// The same instance of ApplyWeaponDamage was also used as a Multi Effect.
+				// It is already disabled so we just add our RD version as a Multi Effect.
+				AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
+				bIsSingleAndMulti = true;
+			}
 		}
 		else
 		{
@@ -114,35 +129,8 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 
 		bMadeReplacements = true;
 
-		LogMessage = "ReliableDamage:";
-
-		// It happens that the same ApplyWeaponDamage instance is used as both a Single Target
-		// and a Multi Target effect. We replace Single Target effects first, so we only have to look
-		// if a found Single Effect is used as a Multi Effect as well
-		if(bIsSingle)
-		{
-			LogMessage @= "Single";
-
-			iMultiEffectIndex = AbilityTemplate.AbilityMultiTargetEffects.Find(ApplyWeaponDamage);
-			if(iMultiEffectIndex >= 0)
-			{
-				// It was also used as a Multi Effect.
-				// That effect is the same instance as ApplyWeaponDamage,
-				// so it is already disabled. The only thing left is to
-				// add our RD version to the Multi Effects as well.
-				AbilityTemplate.AddMultiTargetEffect(ApplyWeaponDamage_RD);
-
-				LogMessage @= "and Multi";
-			}
-		}
-		else
-		{
-			LogMessage @= "Multi";
-		}
-
-		LogMessage @= "Effect added to" @ AbilityTemplate.DataName @ "to replace" @ ApplyWeaponDamage;
-
-		`Log(LogMessage);
+		LogPrefix = bIsSingleAndMulti ? "*" : bIsSingle ? "S" : "M";
+		`Log("[" $ LogPrefix $ "]" @ AbilityTemplate.DataName $ "." $ ApplyWeaponDamage);
 	}
 
 	return bMadeReplacements;
@@ -172,8 +160,8 @@ private function ForEachKnockback(array<X2Effect> TargetEffects, delegate<WithEf
 private function ForEachAbilityTemplate(delegate<WithAbilityTemplate> WithAbilityTemplate)
 {
 	local X2AbilityTemplateManager AbilityTemplateManager;
-    local X2AbilityTemplate AbilityTemplate;
-    local X2DataTemplate DataTemplate;
+	local X2AbilityTemplate AbilityTemplate;
+	local X2DataTemplate DataTemplate;
 	local array<X2AbilityTemplate> AbilityTemplates;
 
 	AbilityTemplateManager = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
@@ -200,7 +188,7 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2DataTemplate DataTemplate;
 	local array<X2DataTemplate> DataTemplates;
 
-	`Log("Reliable Damage: Removing Damage Spread");
+	`Log("<ReliableDamage.RemoveDamageSpread />");
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
 	if (ItemTemplateManager == none) return;
@@ -210,8 +198,6 @@ private function RemoveDamageSpreadFromWeapons()
 	{
 		WeaponTemplate = X2WeaponTemplate(DataTemplate);
 		if(WeaponTemplate == None) continue;
-
-		`Log("Removing spread from" @ WeaponTemplate.DataName);
 
 		ItemTemplateManager.FindDataTemplateAllDifficulties(WeaponTemplate.DataName, DataTemplates);
 
@@ -228,11 +214,11 @@ private function RemoveWeaponSpread(X2WeaponTemplate WeaponTemplate)
 {
 	local WeaponDamageValue ExtraDamage;
 
-	WeaponTemplate.BaseDamage.Spread = 0;	
+	WeaponTemplate.BaseDamage.Spread = 0;
 
 	foreach WeaponTemplate.ExtraDamage(ExtraDamage)
 	{
-		ExtraDamage.Spread = 0;		
+		ExtraDamage.Spread = 0;
 	}
 }
 
