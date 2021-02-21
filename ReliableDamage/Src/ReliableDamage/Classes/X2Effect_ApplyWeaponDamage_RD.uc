@@ -86,10 +86,11 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
 
-	`Log("Source:" @ AbilityContext.SourceUnit.GetName(eNameType_FullNick));
+	LogUnit("Source:", AbilityContext.SourceUnit);
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
 	if(AbilityContext.SourceWeapon != None) `Log("Weapon:" @ AbilityContext.SourceWeapon.GetMyTemplateName());
-	`Log("Target:" @ AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetName(eNameType_FullNick) : string(AbilityContext.TargetObject.Class));
+	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
+	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
 
 	LogInt("IN Damage", iDamageOnHit);
 	LogInt("IN Rupture", NewRupture, NewRupture != 0);
@@ -410,4 +411,11 @@ private function LogInt(string Message, int Number, optional bool Condition = tr
 private function LogHitChance(string Message, float HitChance, optional bool Condition = true)
 {
 	`Log(Message @ int(HitChance * 100) $ "%", Condition);
+}
+
+private function LogUnit(string Message, XComGameState_Unit Unit)
+{
+	local name SoldierClass;
+	SoldierClass = Unit.GetSoldierClassTemplateName();
+	`Log(Message @ "[" $ (SoldierClass != '' ? SoldierClass : Unit.GetMyTemplateName()) $ "]" @ Unit.GetName(eNameType_FullNick));
 }
