@@ -187,8 +187,10 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	// to scale it and at the end remove the fixed Rupture value to end up at the correct amount in the UI.
 	iRuptureDamage = AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetRupturedValue() : 0;
 
-	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation + iRuptureDamage);
-	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation + iRuptureDamage - iMaxPlusOneDamage);
+	// We also include the preview Rupture as this is immediately applied to the target as damage as well.
+	// This is something that XCOM leaves out by default as well and is incorrect so we fix that here.
+	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation + iRuptureDamage + MinDamagePreview.Rupture);
+	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation + iRuptureDamage + MaxDamagePreview.Rupture - iMaxPlusOneDamage);
 
 	fMinDamage = fHitChance * iMinDamage;
 	fMaxDamage = fHitChance * iMaxDamage;
