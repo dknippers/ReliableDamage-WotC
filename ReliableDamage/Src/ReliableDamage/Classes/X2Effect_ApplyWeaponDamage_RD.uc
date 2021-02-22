@@ -68,55 +68,6 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 	return Original.ModifyDamageValue(DamageValue, Target, AppliedDamageTypes);
 }
 
-simulated function bool PlusOneDamage(int Chance)
-{
-	if(Configuration.AdjustPlusOne)
-	{
-		// We add the expected value of PlusOne to every shot,
-		// the PlusOne effect should not occur here anymore.
-		return false;
-	}
-	else
-	{
-		// Default behavior
-		return super.PlusOneDamage(Chance);
-	}
-}
-
-simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState, XComGameState_Effect NewEffectState)
-{
-	local array<Name> ReserveActionPoints;
-	local XComGameState_Unit TargetUnit;
-	local int TotalDamage, HitChance, CurrentHealth;
-
-	TargetUnit = XComGameState_Unit(kNewTargetState);
-	if(TargetUnit != None)
-	{
-		CurrentHealth = TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP);
-		ReserveActionPoints = TargetUnit.ReserveActionPoints;
-	}
-
-	// Default behavior
-	super.OnEffectAdded(ApplyEffectParameters, kNewTargetState, NewGameState, NewEffectState);
-
-	if(ReserveActionPoints.Length == 0 || ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success)
-	{
-		return;
-	}
-
-	// We may have to restore Overwatch like abilities, as a Hit will have removed those.
-	HitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance;
-	TargetUnit = XComGameState_Unit(kNewTargetState);
-	if(TargetUnit == None) return;
-
-	TotalDamage = CurrentHealth - (TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP));
-	if(HitChance < Configuration.OverwatchRemovalMinimumHitChance || TotalDamage < Configuration.OverwatchRemovalMinimumDamage)
-	{
-		// Restore Overwatch
-		TargetUnit.ReserveActionPoints = ReserveActionPoints;
-	}
-}
-
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState)
 {
 	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iDamageOnGraze;
@@ -246,6 +197,55 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	// Shred
 	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
 	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
+}
+
+simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState, XComGameState_Effect NewEffectState)
+{
+	local array<Name> ReserveActionPoints;
+	local XComGameState_Unit TargetUnit;
+	local int TotalDamage, HitChance, CurrentHealth;
+
+	TargetUnit = XComGameState_Unit(kNewTargetState);
+	if(TargetUnit != None)
+	{
+		CurrentHealth = TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP);
+		ReserveActionPoints = TargetUnit.ReserveActionPoints;
+	}
+
+	// Default behavior
+	super.OnEffectAdded(ApplyEffectParameters, kNewTargetState, NewGameState, NewEffectState);
+
+	if(ReserveActionPoints.Length == 0 || ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success)
+	{
+		return;
+	}
+
+	// We may have to restore Overwatch like abilities, as a Hit will have removed those.
+	HitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance;
+	TargetUnit = XComGameState_Unit(kNewTargetState);
+	if(TargetUnit == None) return;
+
+	TotalDamage = CurrentHealth - (TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP));
+	if(HitChance < Configuration.OverwatchRemovalMinimumHitChance || TotalDamage < Configuration.OverwatchRemovalMinimumDamage)
+	{
+		// Restore Overwatch
+		TargetUnit.ReserveActionPoints = ReserveActionPoints;
+	}
+}
+
+simulated function bool PlusOneDamage(int Chance)
+{
+	if(Configuration.AdjustPlusOne)
+	{
+		// We add the expected value of PlusOne to every shot,
+		// the PlusOne effect should not occur here anymore.
+		return false;
+	}
+	else
+	{
+		// Default behavior
+		return super.PlusOneDamage(Chance);
+	}
 }
 
 private function ApplyDamageInfo CalculateDamageInfo(AbilityGameStateContext AbilityContext)
