@@ -56,7 +56,7 @@ private function bool ShouldChangeToHit(EAbilityHitResult HitResult)
 		case eHit_Graze: return Configuration.AdjustGrazeHits;
 
 		default: return false;
-	}	
+	}
 }
 
 defaultproperties

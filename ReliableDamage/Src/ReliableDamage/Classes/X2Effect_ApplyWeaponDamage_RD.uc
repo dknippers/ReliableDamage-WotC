@@ -210,7 +210,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 private function ApplyDamageInfo CalculateDamageInfo(AbilityGameStateContext AbilityContext)
 {
 	local ApplyDamageInfo DamageInfo;
-	local array<Name> AppliedDamageTypes;	
+	local array<Name> AppliedDamageTypes;
 
 	super.CalculateDamageValues(AbilityContext.SourceWeapon, AbilityContext.SourceUnit, AbilityContext.TargetUnit, AbilityContext.Ability, DamageInfo, AppliedDamageTypes);
 
@@ -284,9 +284,9 @@ private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext, App
 	local StateObjectReference EffectRef;
 	local X2Effect_Persistent EffectTemplate;
 	local int iCritDamage;
-	local EffectAppliedData TestEffectData;	
+	local EffectAppliedData TestEffectData;
 
-	iCritDamage = 
+	iCritDamage =
 		DamageInfo.BaseDamageValue.Crit +
 		DamageInfo.ExtraDamageValue.Crit +
 		DamageInfo.BonusEffectDamageValue.Crit +
@@ -328,39 +328,39 @@ private function float GetPlusOneExpectedValue(ApplyDamageInfo DamageInfo, optio
 {
 	local int TotalPlusOne;
 
-	if(DamageInfo.BaseDamageValue.PlusOne > 0) 
+	if(DamageInfo.BaseDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
 		TotalPlusOne += DamageInfo.BaseDamageValue.PlusOne;
 	}
 
-	if(DamageInfo.ExtraDamageValue.PlusOne > 0) 
+	if(DamageInfo.ExtraDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
 		TotalPlusOne += DamageInfo.ExtraDamageValue.PlusOne;
 	}
 
-	if(DamageInfo.BonusEffectDamageValue.PlusOne > 0) 
+	if(DamageInfo.BonusEffectDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
 		TotalPlusOne += DamageInfo.BonusEffectDamageValue.PlusOne;
 	}
 
-	if(DamageInfo.AmmoDamageValue.PlusOne > 0) 
+	if(DamageInfo.AmmoDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
 		TotalPlusOne += DamageInfo.AmmoDamageValue.PlusOne;
 	}
 
-	if(DamageInfo.UpgradeDamageValue.PlusOne > 0) 
+	if(DamageInfo.UpgradeDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
 		TotalPlusOne += DamageInfo.UpgradeDamageValue.PlusOne;
 	}
-	
+
 	// The expected value is simply the total plus one probability
 	// divided by 100, as each instance of PlusOne adds exactly 1 damage.
-	return TotalPlusOne / 100.0f;	
+	return TotalPlusOne / 100.0f;
 }
 
 private function AbilityGameStateContext GetAbilityContext(StateObjectReference AbilityRef, StateObjectReference TargetRef, optional XComGameState NewGameState)
