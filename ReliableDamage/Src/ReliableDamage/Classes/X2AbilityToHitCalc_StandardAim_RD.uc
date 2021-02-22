@@ -17,6 +17,7 @@ function Clone(X2AbilityToHitCalc_StandardAim Source)
 	bMultiTargetOnly = Source.bMultiTargetOnly;
 	bOnlyMultiHitWithSuccess = Source.bOnlyMultiHitWithSuccess;
 	bGuaranteedHit = Source.bGuaranteedHit;
+	bIgnoreCoverBonus = Source.bIgnoreCoverBonus;
 	FinalMultiplier = Source.FinalMultiplier;
 
 	BuiltInHitMod = Source.BuiltInHitMod;
