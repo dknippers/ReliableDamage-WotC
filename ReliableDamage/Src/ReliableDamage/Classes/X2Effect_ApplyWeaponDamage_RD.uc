@@ -164,7 +164,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fMinDamage, fMaxDamage, fDamageOnMiss, fDamageOnCrit, fMinDamageOnGraze, fMaxDamageOnGraze, fDamageOnPlusOne;
-	local int iArmorMitigation, iMinDamage, iMaxDamage, iMinDamageOnGraze, iMaxDamageOnGraze, iMaxPlusOneDamage;
+	local int iArmorMitigation, iMinDamage, iMaxDamage, iMinDamageOnGraze, iMaxDamageOnGraze, iMaxPlusOneDamage, iRuptureDamage;
 	local ApplyDamageInfo DamageInfo;
 	local AbilityGameStateContext AbilityContext;
 
@@ -182,8 +182,13 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
 
-	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation);
-	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation - iMaxPlusOneDamage);
+	// XCOM adds Rupture bonus damage later as a constant bonus to both Minimum and Maximum damage.
+	// We want to scale this bonus like all other damage so we add it here to both iMin & iMax damage
+	// to scale it and at the end remove the fixed Rupture value to end up at the correct amount in the UI.
+	iRuptureDamage = AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetRupturedValue() : 0;
+
+	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation + iRuptureDamage);
+	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation + iRuptureDamage - iMaxPlusOneDamage);
 
 	fMinDamage = fHitChance * iMinDamage;
 	fMaxDamage = fHitChance * iMaxDamage;
@@ -195,8 +200,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fMaxDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMaxDamageOnGraze : 0.0f;
 
 	// Damage
-	MinDamagePreview.Damage = iArmorMitigation + FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fMinDamageOnGraze + fDamageOnPlusOne);
-	MaxDamagePreview.Damage = iArmorMitigation + FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fMaxDamageOnGraze + fDamageOnPlusOne);
+	MinDamagePreview.Damage = FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fMinDamageOnGraze + fDamageOnPlusOne) + iArmorMitigation - iRuptureDamage;
+	MaxDamagePreview.Damage = FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fMaxDamageOnGraze + fDamageOnPlusOne) + iArmorMitigation - iRuptureDamage;
 
 	// Rupture
 	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
