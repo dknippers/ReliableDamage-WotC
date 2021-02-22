@@ -263,13 +263,18 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 	local ShotBreakdown Breakdown;
 	local int iHitChance;
 	local float fHitChance;
+	local X2AbilityToHitCalc_StandardAim_RD StandardAim;
 
 	Ability.LookupShotBreakdown(Ability.OwnerStateObject, TargetRef, Ability.GetReference(), Breakdown);
 
 	iHitChance = Clamp(Breakdown.bIsMultishot ? Breakdown.MultiShotHitChance : Breakdown.FinalHitChance, 0, 100);
-
 	fHitChance = iHitChance / 100.0f;
-	fCritChance = Clamp(Breakdown.ResultTable[eHit_Crit], 0, 100) / 100.0f;
+
+	StandardAim = X2AbilityToHitCalc_StandardAim_RD(Ability.GetMyTemplate().AbilityToHitCalc);
+	fCritChance = (StandardAim != None && StandardAim.bHitsAreCrits)
+		? fHitChance // Special case when hits are always Critical hits, e.g. Grenadier's Rupture
+		: Clamp(Breakdown.ResultTable[eHit_Crit], 0, 100) / 100.0f;
+
 	fGrazeChance = Clamp(Breakdown.ResultTable[eHit_Graze], 0, 100) / 100.0f;
 
 	ModifyHitChanceForSpecialCase(Ability, TargetRef, fHitChance);
