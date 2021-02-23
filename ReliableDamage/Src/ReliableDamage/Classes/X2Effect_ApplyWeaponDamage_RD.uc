@@ -70,7 +70,7 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState)
 {
-	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iDamageOnGraze;
+	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iArmorPiercing, iRemainingArmor;
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fTotalDamage, fDamageOnHit, fDamageOnMiss, fDamageOnCrit, fDamageOnGraze, fDamageOnPlusOne, fShred, fRupture;
 	local AbilityGameStateContext AbilityContext;
 	local ApplyDamageInfo DamageInfo;
@@ -87,8 +87,12 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
 	DamageInfo = CalculateDamageInfo(AbilityContext);
 
+	iArmorPiercing = GetArmorPiercing(AbilityContext, DamageInfo);
+	AdjustDamageAndRemainingArmor(ApplyEffectParameters.TargetStateObjectRef, ArmorMitigation, iArmorPiercing, iDamageOnHit, iRemainingArmor);
+
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
+	`Log("");
 
 	LogUnit("Source:", AbilityContext.SourceUnit);
 	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
@@ -96,6 +100,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
 	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
 
+	`Log("");
 	LogInt("IN Damage", iDamageOnHit);
 	LogInt("IN Rupture", NewRupture, NewRupture != 0);
 	LogInt("IN Shred", NewShred, NewShred != 0);
@@ -111,13 +116,10 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	iDamageOnCrit = GetDamageOnCrit(AbilityContext, DamageInfo);
 	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * iDamageOnCrit : 0.0f;
 
-	// Note this should be negative number; a Graze hit reduces damage taken
-	iDamageOnGraze = (iDamageOnHit * GRAZE_DMG_MULT) - iDamageOnHit;
-	fDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iDamageOnGraze : 0.0f;
-
 	fDamageOnPlusOne = Configuration.AdjustPlusOne ? fHitChance * GetPlusOneExpectedValue(DamageInfo) : 0.0f;
+	fDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iDamageOnHit * (1.0f - GRAZE_DMG_MULT) : 0.0f;
 
-	fTotalDamage = fDamageOnHit + fDamageOnMiss + fDamageOnCrit + fDamageOnGraze + fDamageOnPlusOne;
+	fTotalDamage = FMax(0, fDamageOnHit + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fDamageOnGraze - iRemainingArmor);
 
 	fRupture = fHitChance * NewRupture;
 	fShred = fHitChance * NewShred;
@@ -126,22 +128,27 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	NewRupture = RollForInt(fRupture);
 	NewShred = RollForInt(fShred);
 
-	LogHitChance("fHitChance", fHitChance);
-	LogFloat("fDamageOnHit", fDamageOnHit, fDamageOnMiss != 0 || fDamageOnCrit != 0 || fDamageOnGraze != 0 || fDamageOnPlusOne != 0);
-	LogFloat("fDamageOnMiss", fDamageOnMiss, fDamageOnMiss != 0);
-	LogHitChance("fCritChance", fCritChance, fDamageOnCrit != 0);
-	LogFloat("fDamageOnCrit", fDamageOnCrit, fDamageOnCrit != 0);
-	LogHitChance("fGrazeChance", fGrazeChance, fDamageOnGraze != 0);
-	LogFloat("fDamageOnGraze", fDamageOnGraze, fDamageOnGraze != 0);
-	LogFloat("fDamageOnPlusOne", fDamageOnPlusOne, fDamageOnPlusOne != 0);
-	LogFloat("fTotalDamage", fTotalDamage);
-	LogFloat("fRupture", fRupture, NewRupture != 0);
-	LogFloat("fShred", fShred, NewShred != 0);
+	`Log("--------------------");
+	LogHitChance("HitChance", fHitChance);
+	LogFloat("HitDamage", fDamageOnHit, fDamageOnMiss != 0 || fDamageOnCrit != 0 || fDamageOnGraze != 0 || fDamageOnPlusOne != 0 || iRemainingArmor != 0);
+	LogFloat("MissDamage", fDamageOnMiss, fDamageOnMiss != 0);
+	LogHitChance("CritChance", fCritChance, fDamageOnCrit != 0);
+	LogFloat("CritDamage", fDamageOnCrit, fDamageOnCrit != 0);
+	LogFloat("PlusOneDamage", fDamageOnPlusOne, fDamageOnPlusOne != 0);
+	LogHitChance("GrazeChance", fGrazeChance, fDamageOnGraze != 0);
+	LogFloat("GrazeDamage", -1 * fDamageOnGraze, fDamageOnGraze != 0);
+	LogInt("RemainingArmor", -1 * iRemainingArmor, iRemainingArmor != 0);
+	`Log("--");
+	LogFloat("TotalDamage", fTotalDamage);
+	LogFloat("Rupture", fRupture, NewRupture != 0);
+	LogFloat("Shred", fShred, NewShred != 0);
+	`Log("--------------------");
 
 	LogInt("OUT Damage", iTotalDamage);
 	LogInt("OUT Rupture", NewRupture, fRupture != 0);
 	LogInt("OUT Shred", NewShred, fShred != 0);
 
+	`Log("");
 	`Log("</ReliableDamage.Damage>");
 	`Log("");
 
@@ -151,7 +158,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fMinDamage, fMaxDamage, fDamageOnMiss, fDamageOnCrit, fMinDamageOnGraze, fMaxDamageOnGraze, fDamageOnPlusOne;
-	local int iArmorMitigation, iMinDamage, iMaxDamage, iMinDamageOnGraze, iMaxDamageOnGraze, iMaxPlusOneDamage, iRuptureDamage;
+	local int iMinDamage, iMaxDamage, iMaxPlusOneDamage, iRuptureDamage, iArmorMitigation;
 	local ApplyDamageInfo DamageInfo;
 	local AbilityGameStateContext AbilityContext;
 
@@ -167,7 +174,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * GetDamageOnCrit(AbilityContext, DamageInfo) : 0.0f;
 	fDamageOnPlusOne = Configuration.AdjustPlusOne ? fHitChance * GetPlusOneExpectedValue(DamageInfo, iMaxPlusOneDamage) : 0.0f;
 
-	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
+	// Armor mitigation cannot exceed the max damage dealt
+	iArmorMitigation = Min(GetArmorMitigation(TargetRef, MaxDamagePreview.Pierce), MaxDamagePreview.Damage);
 
 	// XCOM adds Rupture bonus damage later as a constant bonus to both Minimum and Maximum damage.
 	// We want to scale this bonus like all other damage so we add it here to both iMin & iMax damage
@@ -182,15 +190,12 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fMinDamage = fHitChance * iMinDamage;
 	fMaxDamage = fHitChance * iMaxDamage;
 
-	iMinDamageOnGraze = (iMinDamage * GRAZE_DMG_MULT) - iMinDamage;
-	iMaxDamageOnGraze = (iMaxDamage * GRAZE_DMG_MULT) - iMaxDamage;
-
-	fMinDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMinDamageOnGraze : 0.0f;
-	fMaxDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMaxDamageOnGraze : 0.0f;
+	fMinDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMinDamage * (1.0f - GRAZE_DMG_MULT) : 0.0f;
+	fMaxDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMaxDamage * (1.0f - GRAZE_DMG_MULT) : 0.0f;
 
 	// Damage
-	MinDamagePreview.Damage = FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fMinDamageOnGraze + fDamageOnPlusOne) + iArmorMitigation - iRuptureDamage;
-	MaxDamagePreview.Damage = FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fMaxDamageOnGraze + fDamageOnPlusOne) + iArmorMitigation - iRuptureDamage;
+	MinDamagePreview.Damage = FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMinDamageOnGraze) + iArmorMitigation - iRuptureDamage;
+	MaxDamagePreview.Damage = FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMaxDamageOnGraze) + iArmorMitigation - iRuptureDamage;
 
 	// Rupture
 	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
@@ -247,6 +252,32 @@ simulated function bool PlusOneDamage(int Chance)
 	{
 		// Default behavior
 		return super.PlusOneDamage(Chance);
+	}
+}
+
+// If a unit should deal 0 damage because the target unit's armor > the source unit damage
+// XCOM changes the armor mitigation to [damage - 1], i.e. the source unit will always deal
+// at least 1 damage even though the target's armor could have blocked all damage.
+// Because our mod lowers most output damage the situation where armor > damage will happen
+// more often and we do not want to abuse this free 1 damage mechanic.
+// We fix that behavior by adjusting the damage value and remaining armor accordingly.
+private function AdjustDamageAndRemainingArmor(StateObjectReference TargetRef, int iArmorMitigation, int iArmorPiercing, out int iDamage, out int iRemainingArmor)
+{
+	local int iTotalArmor;
+
+	iTotalArmor = bIgnoreArmor ? 0 : GetArmorMitigation(TargetRef, iArmorPiercing);
+	iRemainingArmor = Max(0, iTotalArmor - iArmorMitigation);
+	if(iRemainingArmor == 0) return;
+
+	if(iRemainingArmor >= iDamage)
+	{
+		iRemainingArmor -= iDamage;
+		iDamage = 0;
+	}
+	else
+	{
+		iDamage -= iRemainingArmor;
+		iRemainingArmor = 0;
 	}
 }
 
@@ -354,6 +385,53 @@ private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext, App
 	return iCritDamage;
 }
 
+private function int GetArmorPiercing(AbilityGameStateContext AbilityContext, ApplyDamageInfo DamageInfo)
+{
+	local XComGameState_Effect Effect;
+	local StateObjectReference EffectRef;
+	local X2Effect_Persistent EffectTemplate;
+	local int iArmorPiercing;
+	local EffectAppliedData TestEffectData;
+	local int iExtraArmorPiercing;
+
+	iArmorPiercing =
+		DamageInfo.BaseDamageValue.Pierce +
+		DamageInfo.ExtraDamageValue.Pierce +
+		DamageInfo.BonusEffectDamageValue.Pierce +
+		DamageInfo.AmmoDamageValue.Pierce +
+		DamageInfo.UpgradeDamageValue.Pierce;
+
+	TestEffectData = CreateTestEffectData(AbilityContext.Ability, AbilityContext.TargetObject.GetReference());
+	foreach AbilityContext.SourceUnit.AffectedByEffects(EffectRef)
+	{
+		Effect = XComGameState_Effect(GetGameStateObject(EffectRef));
+		EffectTemplate = Effect.GetX2Effect();
+		iExtraArmorPiercing = EffectTemplate.GetExtraArmorPiercing(Effect, AbilityContext.SourceUnit, Damageable(AbilityContext.TargetObject), AbilityContext.Ability, TestEffectData);
+		LogInt("Extra armor piercing from" @ EffectTemplate.Name, iExtraArmorPiercing, iExtraArmorPiercing > 0);
+		iArmorPiercing += iExtraArmorPiercing;
+	}
+
+	return iArmorPiercing;
+}
+
+private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Pierce = 0)
+{
+	local Damageable Damageable;
+	local ArmorMitigationResults ArmorMitigationResults;
+	local int iArmorMitigation;
+
+	Damageable = Damageable(GetGameStateObject(TargetRef));
+	if(Damageable == None) return 0;
+
+	// Cannot be negative
+	iArmorMitigation = Max(0, Damageable.GetArmorMitigation(ArmorMitigationResults));
+
+	// Reduced by Pierce
+	iArmorMitigation = Max(0, iArmorMitigation - Pierce);
+
+	return iArmorMitigation;
+}
+
 private function EffectAppliedData CreateTestEffectData(XComGameState_Ability Ability, StateObjectReference TargetRef, optional XComGameState NewGameState)
 {
 	local EffectAppliedData TestEffectData;
@@ -379,31 +457,31 @@ private function float GetPlusOneExpectedValue(ApplyDamageInfo DamageInfo, optio
 	if(DamageInfo.BaseDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
-		TotalPlusOne += DamageInfo.BaseDamageValue.PlusOne;
+		TotalPlusOne += Min(100, DamageInfo.BaseDamageValue.PlusOne);
 	}
 
 	if(DamageInfo.ExtraDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
-		TotalPlusOne += DamageInfo.ExtraDamageValue.PlusOne;
+		TotalPlusOne += Min(100, DamageInfo.ExtraDamageValue.PlusOne);
 	}
 
 	if(DamageInfo.BonusEffectDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
-		TotalPlusOne += DamageInfo.BonusEffectDamageValue.PlusOne;
+		TotalPlusOne += Min(100, DamageInfo.BonusEffectDamageValue.PlusOne);
 	}
 
 	if(DamageInfo.AmmoDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
-		TotalPlusOne += DamageInfo.AmmoDamageValue.PlusOne;
+		TotalPlusOne += Min(100, DamageInfo.AmmoDamageValue.PlusOne);
 	}
 
 	if(DamageInfo.UpgradeDamageValue.PlusOne > 0)
 	{
 		MaxDamage++;
-		TotalPlusOne += DamageInfo.UpgradeDamageValue.PlusOne;
+		TotalPlusOne += Min(100, DamageInfo.UpgradeDamageValue.PlusOne);
 	}
 
 	// The expected value is simply the total plus one probability
@@ -480,27 +558,6 @@ private function int RollForInt(float Value)
 
 	MaxValueChance = Round((Value - MinValue) * 100);
 	return `SYNC_RAND(100) < MaxValueChance ? MaxValue : MinValue;
-}
-
-private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Damage = 0, optional int Pierce = 0)
-{
-	local Damageable Damageable;
-	local ArmorMitigationResults ArmorMitigationResults;
-	local int iArmorMitigation;
-
-	Damageable = Damageable(GetGameStateObject(TargetRef));
-	if(Damageable == None) return 0;
-
-	// Cannot be negative
-	iArmorMitigation = Max(0, Damageable.GetArmorMitigation(ArmorMitigationResults));
-
-	// Cannot exceed damage
-	iArmorMitigation = Min(Damage, iArmorMitigation);
-
-	// Reduced by Pierce
-	iArmorMitigation = Max(0, iArmorMitigation - Pierce);
-
-	return iArmorMitigation;
 }
 
 private function LogFloat(string Message, float Number, optional bool Condition = true)
