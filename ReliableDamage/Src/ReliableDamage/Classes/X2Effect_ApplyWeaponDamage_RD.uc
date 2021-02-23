@@ -129,7 +129,9 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	LogHitChance("fHitChance", fHitChance);
 	LogFloat("fDamageOnHit", fDamageOnHit, fDamageOnMiss != 0 || fDamageOnCrit != 0 || fDamageOnGraze != 0 || fDamageOnPlusOne != 0);
 	LogFloat("fDamageOnMiss", fDamageOnMiss, fDamageOnMiss != 0);
+	LogHitChance("fCritChance", fCritChance, fDamageOnCrit != 0);
 	LogFloat("fDamageOnCrit", fDamageOnCrit, fDamageOnCrit != 0);
+	LogHitChance("fGrazeChance", fGrazeChance, fDamageOnGraze != 0);
 	LogFloat("fDamageOnGraze", fDamageOnGraze, fDamageOnGraze != 0);
 	LogFloat("fDamageOnPlusOne", fDamageOnPlusOne, fDamageOnPlusOne != 0);
 	LogFloat("fTotalDamage", fTotalDamage);
