@@ -115,7 +115,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	iDamageOnGraze = (iDamageOnHit * GRAZE_DMG_MULT) - iDamageOnHit;
 	fDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iDamageOnGraze : 0.0f;
 
-	fDamageOnPlusOne = Configuration.AdjustPlusOne ? GetPlusOneExpectedValue(DamageInfo) : 0.0f;
+	fDamageOnPlusOne = Configuration.AdjustPlusOne ? fHitChance * GetPlusOneExpectedValue(DamageInfo) : 0.0f;
 
 	fTotalDamage = fDamageOnHit + fDamageOnMiss + fDamageOnCrit + fDamageOnGraze + fDamageOnPlusOne;
 
@@ -163,7 +163,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fMissChance = 1.0f - fHitChance;
 	fDamageOnMiss = fMissChance * GetDamageOnMiss(AbilityState);
 	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * GetDamageOnCrit(AbilityContext, DamageInfo) : 0.0f;
-	fDamageOnPlusOne = Configuration.AdjustPlusOne ? GetPlusOneExpectedValue(DamageInfo, iMaxPlusOneDamage) : 0.0f;
+	fDamageOnPlusOne = Configuration.AdjustPlusOne ? fHitChance * GetPlusOneExpectedValue(DamageInfo, iMaxPlusOneDamage) : 0.0f;
 
 	iArmorMitigation = GetArmorMitigation(TargetRef, MaxDamagePreview.Damage, MaxDamagePreview.Pierce);
 
