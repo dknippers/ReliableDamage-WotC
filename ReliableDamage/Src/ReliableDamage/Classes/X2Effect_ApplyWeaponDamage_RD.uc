@@ -95,8 +95,8 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("");
 
 	LogUnit("Source:", AbilityContext.SourceUnit);
-	`Log("Ability:" @ AbilityContext.Ability.GetMyTemplateName());
-	if(AbilityContext.SourceWeapon != None) `Log("Weapon:" @ AbilityContext.SourceWeapon.GetMyTemplateName());
+	`Log("Ability:" @ "[" $ AbilityContext.Ability.GetMyTemplateName() $ "]" @ AbilityContext.Ability.GetMyFriendlyName());
+	if(AbilityContext.SourceWeapon != None) `Log("Weapon:" @ "[" $ AbilityContext.SourceWeapon.GetMyTemplateName() $ "]" @ AbilityContext.SourceWeapon.GetMyTemplate().GetItemFriendlyName());
 	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
 	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
 
