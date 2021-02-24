@@ -1,4 +1,4 @@
-class Configuration extends Object config(ReliableDamage);
+class Configuration extends Object config(ReliableDamage_WotC);
 
 var config bool RemoveDamageSpread;
 var config bool AdjustCriticalHits;
