@@ -604,7 +604,7 @@ private function LogItem(string Message, XComGameState_Item Item)
 	local X2ItemTemplate ItemTemplate;
 	ItemTemplate = Item.GetMyTemplate();
 
-	`Log(Message @ "[" $ ItemTemplate.Name $ "]" @ ItemTemplate.HasDisplayData() ? ItemTemplate.GetItemFriendlyName() : "");
+	`Log(Message @ "[" $ Item.GetMyTemplateName() $ "]" $ (ItemTemplate.HasDisplayData() ? "" @ ItemTemplate.GetItemFriendlyName() : ""));
 }
 
 private function LogAbility(string Message, XComGameState_Ability Ability)
