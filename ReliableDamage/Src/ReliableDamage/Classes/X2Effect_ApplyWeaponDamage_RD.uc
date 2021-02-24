@@ -140,8 +140,8 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	LogInt("RemainingArmor", -1 * iRemainingArmor, iRemainingArmor != 0);
 	`Log("--");
 	LogFloat("TotalDamage", fTotalDamage);
-	LogFloat("Rupture", fRupture, NewRupture != 0);
-	LogFloat("Shred", fShred, NewShred != 0);
+	LogFloat("TotalRupture", fRupture, fRupture != 0);
+	LogFloat("TotalShred", fShred, fShred != 0);
 	`Log("--------------------");
 
 	LogInt("OUT Damage", iTotalDamage);
@@ -158,7 +158,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fMinDamage, fMaxDamage, fDamageOnMiss, fDamageOnCrit, fMinDamageOnGraze, fMaxDamageOnGraze, fDamageOnPlusOne;
-	local int iMinDamage, iMaxDamage, iMaxPlusOneDamage, iRuptureDamage, iArmorMitigation;
+	local int iMinDamage, iMaxDamage, iMaxPlusOneDamage, iRuptureDamage;
 	local ApplyDamageInfo DamageInfo;
 	local AbilityGameStateContext AbilityContext;
 
@@ -174,9 +174,6 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fDamageOnCrit = Configuration.AdjustCriticalHits ? fCritChance * GetDamageOnCrit(AbilityContext, DamageInfo) : 0.0f;
 	fDamageOnPlusOne = Configuration.AdjustPlusOne ? fHitChance * GetPlusOneExpectedValue(DamageInfo, iMaxPlusOneDamage) : 0.0f;
 
-	// Armor mitigation cannot exceed the max damage dealt
-	iArmorMitigation = Min(GetArmorMitigation(TargetRef, MaxDamagePreview.Pierce), MaxDamagePreview.Damage);
-
 	// XCOM adds Rupture bonus damage later as a constant bonus to both Minimum and Maximum damage.
 	// We want to scale this bonus like all other damage so we add it here to both iMin & iMax damage
 	// to scale it and at the end remove the fixed Rupture value to end up at the correct amount in the UI.
@@ -184,8 +181,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	// We also include the preview Rupture as this is immediately applied to the target as damage as well.
 	// This is something that XCOM leaves out by default as well and is incorrect so we fix that here.
-	iMinDamage = Max(0, MinDamagePreview.Damage - iArmorMitigation + iRuptureDamage + MinDamagePreview.Rupture);
-	iMaxDamage = Max(0, MaxDamagePreview.Damage - iArmorMitigation + iRuptureDamage + MaxDamagePreview.Rupture - iMaxPlusOneDamage);
+	iMinDamage = Max(0, MinDamagePreview.Damage + iRuptureDamage + MinDamagePreview.Rupture);
+	iMaxDamage = Max(0, MaxDamagePreview.Damage + iRuptureDamage + MaxDamagePreview.Rupture - iMaxPlusOneDamage);
 
 	fMinDamage = fHitChance * iMinDamage;
 	fMaxDamage = fHitChance * iMaxDamage;
@@ -194,8 +191,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	fMaxDamageOnGraze = Configuration.AdjustGrazeHits ? fGrazeChance * iMaxDamage * (1.0f - GRAZE_DMG_MULT) : 0.0f;
 
 	// Damage
-	MinDamagePreview.Damage = FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMinDamageOnGraze) + iArmorMitigation - iRuptureDamage;
-	MaxDamagePreview.Damage = FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMaxDamageOnGraze) + iArmorMitigation - iRuptureDamage;
+	MinDamagePreview.Damage = FFloor(fMinDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMinDamageOnGraze) - iRuptureDamage;
+	MaxDamagePreview.Damage = FCeil(fMaxDamage + fDamageOnMiss + fDamageOnCrit + fDamageOnPlusOne - fMaxDamageOnGraze) - iRuptureDamage;
 
 	// Rupture
 	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
