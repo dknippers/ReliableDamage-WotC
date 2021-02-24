@@ -31,8 +31,10 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// Default behavior
 	super.RollForAbilityHit(kAbility, kTarget, ResultContext);
 
+	assert(kTarget.AdditionalTargets.Length == ResultContext.MultiTargetHitResults.Length);
+
 	// Single Target
-	if(ShouldChangeToHit(ResultContext.HitResult))
+	if(ShouldChangeToHit(kTarget.PrimaryTarget, ResultContext.HitResult))
 	{
 		ResultContext.HitResult = eHit_Success;
 	}
@@ -40,15 +42,20 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// Multi Target
 	for(i = 0; i < ResultContext.MultiTargetHitResults.Length; i++)
 	{
-		if(ShouldChangeToHit(ResultContext.MultiTargetHitResults[i]))
+		if(ShouldChangeToHit(kTarget.AdditionalTargets[i], ResultContext.MultiTargetHitResults[i]))
 		{
 			ResultContext.MultiTargetHitResults[i] = eHit_Success;
 		}
 	}
 }
 
-private function bool ShouldChangeToHit(EAbilityHitResult HitResult)
+private function bool ShouldChangeToHit(StateObjectReference TargetRef, EAbilityHitResult HitResult)
 {
+	if(!Configuration.ApplyVsTheLost && class'X2Effect_ApplyWeaponDamage_RD'.static.UnitIsTheLost(TargetRef))
+	{
+		return false;
+	}
+
 	switch(HitResult)
 	{
 		case eHit_Miss: return true;

@@ -78,9 +78,12 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	// Calculate damage as usual
 	iDamageOnHit = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
 
-	if(ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success)
+	if(
+		ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success ||
+		(!Configuration.ApplyVsTheLost && UnitIsTheLost(ApplyEffectParameters.TargetStateObjectRef))
+	)
 	{
-		// We only adjust damage for regular hits. Do not touch anything else.
+		// Do not modify in this scenario, just return value from super.
 		return iDamageOnHit;
 	}
 
@@ -95,8 +98,8 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("");
 
 	LogUnit("Source:", AbilityContext.SourceUnit);
-	`Log("Ability:" @ "[" $ AbilityContext.Ability.GetMyTemplateName() $ "]" @ AbilityContext.Ability.GetMyFriendlyName());
-	if(AbilityContext.SourceWeapon != None) `Log("Weapon:" @ "[" $ AbilityContext.SourceWeapon.GetMyTemplateName() $ "]" @ AbilityContext.SourceWeapon.GetMyTemplate().GetItemFriendlyName());
+	LogAbility("Ability:", AbilityContext.Ability);
+	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);
 	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
 	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
 
@@ -164,6 +167,11 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	// Default behavior
 	super.GetDamagePreview(TargetRef, AbilityState, bAsPrimaryTarget, MinDamagePreview, MaxDamagePreview, AllowsShield);
+
+	if(!Configuration.ApplyVsTheLost && UnitIsTheLost(TargetRef))
+	{
+		return;
+	}
 
 	AbilityContext = GetAbilityContext(AbilityState.GetReference(), TargetRef);
 	DamageInfo = CalculateDamageInfo(AbilityContext);
@@ -250,6 +258,16 @@ simulated function bool PlusOneDamage(int Chance)
 		// Default behavior
 		return super.PlusOneDamage(Chance);
 	}
+}
+
+function static bool UnitIsTheLost(StateObjectReference TargetRef)
+{
+	local XComGameState_Unit TargetUnit;
+
+	if(TargetRef.ObjectID <= 0) return false;
+
+	TargetUnit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(TargetRef.ObjectID));
+	return TargetUnit != None && TargetUnit.GetTeam() == eTeam_TheLost;
 }
 
 // If a unit should deal 0 damage because the target unit's armor > the source unit damage
@@ -579,6 +597,19 @@ private function LogUnit(string Message, XComGameState_Unit Unit)
 	local name SoldierClass;
 	SoldierClass = Unit.GetSoldierClassTemplateName();
 	`Log(Message @ "[" $ (SoldierClass != '' ? SoldierClass : Unit.GetMyTemplateName()) $ "]" @ Unit.GetName(eNameType_FullNick));
+}
+
+private function LogItem(string Message, XComGameState_Item Item)
+{
+	local X2ItemTemplate ItemTemplate;
+	ItemTemplate = Item.GetMyTemplate();
+
+	`Log(Message @ "[" $ ItemTemplate.Name $ "]" @ ItemTemplate.HasDisplayData() ? ItemTemplate.GetItemFriendlyName() : "");
+}
+
+private function LogAbility(string Message, XComGameState_Ability Ability)
+{
+	`Log(Message @ "[" $ Ability.GetMyTemplateName() $ "]" @ Ability.GetMyFriendlyName());
 }
 
 simulated function AddX2ActionsForVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, name EffectApplyResult)
