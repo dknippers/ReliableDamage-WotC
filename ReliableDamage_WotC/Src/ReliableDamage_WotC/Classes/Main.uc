@@ -12,6 +12,11 @@ function InitReliableDamage()
 		RemoveDamageSpreadFromWeapons();
 	}
 
+	if(Configuration.ApplyAmmoEffectsBasedOnHitChance)
+	{
+		ApplyAmmoEffectsBasedOnHitChance();
+	}
+
 	`Log("");
 	`Log("<ReliableDamage.ReplaceWeaponEffects>");
 
@@ -251,6 +256,82 @@ private function RemoveDamageSpreadFromWeaponEffects(array<X2Effect> WeaponEffec
 		WeaponDamageEffect = X2Effect_ApplyWeaponDamage(WeaponEffect);
 		if(WeaponDamageEffect != None) WeaponDamageEffect.EffectDamageValue.Spread = 0;
 	}
+}
+
+private function ApplyAmmoEffectsBasedOnHitChance()
+{
+	local X2ItemTemplateManager ItemTemplateManager;
+	local X2AmmoTemplate AmmoTemplate;
+	local X2DataTemplate DataTemplate;
+	local array<X2DataTemplate> DataTemplates;
+
+	`Log("<ReliableDamage.ApplyAmmoEffectsBasedOnHitChance>");
+
+	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
+	if (ItemTemplateManager == none) return;
+
+	foreach ItemTemplateManager.IterateTemplates(DataTemplate)
+	{
+		AmmoTemplate = X2AmmoTemplate(DataTemplate);
+		if(AmmoTemplate == None) continue;
+
+		ItemTemplateManager.FindDataTemplateAllDifficulties(AmmoTemplate.DataName, DataTemplates);
+
+		foreach DataTemplates(DataTemplate)
+		{
+			AmmoTemplate = X2AmmoTemplate(DataTemplate);
+			if(AmmoTemplate == None) continue;
+
+			AdjustAmmoTemplate(AmmoTemplate);
+		}
+	}
+
+	`Log("</ReliableDamage.ApplyAmmoEffectsBasedOnHitChance>");
+}
+
+private function AdjustAmmoTemplate(X2AmmoTemplate AmmoTemplate)
+{
+	local X2Effect TargetEffect;
+
+	`Log("Adjusting" @ AmmoTemplate.HasDisplayData() ? AmmoTemplate.GetItemFriendlyName() : string(AmmoTemplate.Name));
+
+	foreach AmmoTemplate.TargetEffects(TargetEffect)
+	{
+		if(TargetEffect.ApplyChance > 0 || TargetEffect.ApplyChanceFn != None)
+		{
+			`Log("Effect" @ TargetEffect @ " already has an ApplyChance or ApplyChanceFn");
+			continue;
+		}
+
+		`Log("Adjusting" @ TargetEffect);
+		TargetEffect.ApplyChanceFn = ApplyAmmoChance;
+	}
+}
+
+private function name ApplyAmmoChance(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState)
+{
+	local XComGameState_Ability Ability;
+
+	// DEBUG TMP
+	local name RollResult;
+
+	Ability = XComGameState_Ability(`XCOMHISTORY.GetGameStateForObjectID(ApplyEffectParameters.AbilityStateObjectRef.ObjectID));
+	if(Ability != None && Ability.GetMyTemplate().AbilityToHitCalc.IsA('X2AbilityToHitCalc_StandardAim_RD'))
+	{
+		// Roll for success based on original HitChance.
+		RollResult = `SYNC_RAND(100) < ApplyEffectParameters.AbilityResultContext.CalculatedHitChance ? 'AA_Success' : 'AA_EffectChanceFailed';
+
+		`Log("Roll with chance" @ ApplyEffectParameters.AbilityResultContext.CalculatedHitChance @ ", outcome =" @ RollResult);
+
+		return RollResult;
+	}
+	else
+	{
+		`Log("Ability" @ Ability.GetMyFriendlyName() @ "does not have a standardaim RD!");
+	}
+
+	// Default is success, without this ApplyChanceFn the game always applies all effects.
+	return 'AA_Success';
 }
 
 // Returns true if the list of effects contains an effect that displaces
