@@ -22,16 +22,21 @@ Applying the expected value averages out to the exact same amount of total damag
 [/list]
 
 [h1]Updates[/h1]
-Look in the [url=http://steamcommunity.com/sharedfiles/filedetails/changelog/688497616]Change Notes section[/url].
+Look in the [url=http://steamcommunity.com/sharedfiles/filedetails/changelog/2409840472]Change Notes section[/url].
 
 [h1]Installation directory[/h1]
-This mod is installed to \SteamApps\workshop\content\268500\688497616
+This mod is installed to \SteamApps\workshop\content\268500\2409840472
+
+[h1]Shot information[/h1]
+If you are wondering why a certain shot did a certain amount of damage, be sure to first check your Launch.log file. It will contain a fairly detailed breakdown of every shot that was manipulated by this mod.
+The log file is located here:
+[code]%USERPROFILE%\Documents\My Games\XCOM2 War of the Chosen\XComGame\Logs\Launch.log[/code]
+Search for <ReliableDamage.Damage> to find shot information written by the mod.
 
 [h1]Configuration[/h1]
-Configuration options can be set in Config\XComReliableDamage.ini.
+Configuration options can be set in Config\XComReliableDamage_WotC.ini.
 That file also contains a full description of each option, so look there for more in depth information.
 [list]
-[*] [b]RemoveDamageSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove.
 [*] [b]AdjustCriticalHits[/b] - Critical hits can no longer occur but their bonus damage is incorporated into every shot instead.
 [list]
 [*] Set to 0 to revert to default XCOM behavior
@@ -45,11 +50,13 @@ That file also contains a full description of each option, so look there for mor
 [*] For example, a Pistol has a PlusOne stat of 50. This means 50% of the time it will deal +1 damage. This mod will simply add 0.5 to the expected value of every shot instead.
 [*] Set to 0 to revert to default XCOM behavior
 [/list]
-[*] [b]OverwatchRemovalMinimumDamage[/b] - Minimum damage required to cancel Overwatch, defaults to 1.
-[*] [b]OverwatchRemovalMinimumHitChance[/b] - Minimum hit chance required to cancel Overwatch, defaults to 50.
+[*] [b]ApplyAmmoEffectsBasedOnHitChance[/b] - If set to 1 ammo effects like Dragon Rounds' Burning effect will not be applied on every hit (which is 100% in this mod) but will be applied on hit with a probability equal to the original hit chance.
+[*] [b]ApplyVsTheLost[/b] - To disable all effects of this mod when targeting The Lost set this to 0.
 [list]
-[*] Both conditions have to be met to remove Overwatch.
+[*] The Lost are relatively low HP so trading shot damage for a guaranteed hit is very powerful, especially combined with the "Headshot" ability that restores 1 action point when killing a Lost. It is therefore possible to disable all effects of this mod when targeting The Lost units by setting this option to 0.
 [/list]
+[*] [b]RemoveDamageSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove.
+[*] [b]RemoveOverwatchBasedOnHitChance[/b] - Set this option to 1 to remove Overwatch with a chance equal to the original hit chance, rather than 100% of the time (since shots do not miss anymore).
 [/list]
 
 [h1]Overrides[/h1]
