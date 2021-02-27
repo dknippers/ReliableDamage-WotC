@@ -6,7 +6,9 @@
     <Description>This mod attempts to remove various RNG elements present in the game when you take a shot.
 All shots will now hit but deal the expected value of the shot (hit chance * damage) as damage rather than hit for 100% or miss for 0%.
 This greatly reduces the variance in damage and makes damage output much more reliable.
-Applying the expected value averages out to the exact same amount of total damage that is delivered, just without the RNG of critting / hitting / grazing / missing.</Description>
+Applying the expected value averages out to the exact same amount of total damage that is delivered, just without the RNG of critting / hitting / grazing / missing.
+
+tags= war of the chosen, gameplay</Description>
     <SteamPublishID>0</SteamPublishID>
     <AssemblyName>ReliableDamage_WotC</AssemblyName>
     <RootNamespace>ReliableDamage_WotC</RootNamespace>
