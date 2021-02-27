@@ -293,17 +293,14 @@ private function AdjustAmmoTemplate(X2AmmoTemplate AmmoTemplate)
 {
 	local X2Effect TargetEffect;
 
-	`Log("Adjusting" @ AmmoTemplate.HasDisplayData() ? AmmoTemplate.GetItemFriendlyName() : string(AmmoTemplate.Name));
-
 	foreach AmmoTemplate.TargetEffects(TargetEffect)
 	{
 		if(TargetEffect.ApplyChance > 0 || TargetEffect.ApplyChanceFn != None)
 		{
-			`Log("Effect" @ TargetEffect @ " already has an ApplyChance or ApplyChanceFn");
 			continue;
 		}
 
-		`Log("Adjusting" @ TargetEffect);
+		`Log("Adjusting" @ (AmmoTemplate.HasDisplayData() ? AmmoTemplate.GetItemFriendlyName() : string(AmmoTemplate.Name)) $ "." $ TargetEffect);
 		TargetEffect.ApplyChanceFn = ApplyAmmoChance;
 	}
 }
