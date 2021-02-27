@@ -4,6 +4,9 @@ All shots will now hit but deal the expected value of the shot (<hit_chance> * <
 This greatly reduces the variance in damage and makes damage output much more reliable.
 Applying the expected value averages out to the exact same amount of total damage that is delivered, just without the RNG of critting / hitting / grazing / missing.
 
+[h1]XCOM 2 version[/h1]
+The original mod for XCOM 2 without War of the Chosen can be found [url=https://steamcommunity.com/sharedfiles/filedetails/?id=688497616]here[/url].
+
 [h1]Features[/h1]
 [list]
 [*] Each shot always hits but applies the expected value of the shot (<hit_chance> * <damage>) rather than 100% or 0%.
