@@ -128,7 +128,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	LogInt("Armor:", iArmor, iArmor != 0);
 
 	// Damage
-	`Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
+	if(Configuration.AdjustPlusOne) `Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
 	LogHitChance("HitChance:", fHitChance);
 
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fTotalDamage, fTotalArmorMitigation, true);
@@ -219,32 +219,25 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 {
 	local array<Name> ReserveActionPoints;
 	local XComGameState_Unit TargetUnit;
-	local int TotalDamage, HitChance, CurrentHealth;
 
 	TargetUnit = XComGameState_Unit(kNewTargetState);
 	if(TargetUnit != None)
 	{
-		CurrentHealth = TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP);
 		ReserveActionPoints = TargetUnit.ReserveActionPoints;
 	}
 
 	// Default behavior
 	super.OnEffectAdded(ApplyEffectParameters, kNewTargetState, NewGameState, NewEffectState);
 
-	if(ReserveActionPoints.Length == 0 || ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success)
+	if(TargetUnit == None || ReserveActionPoints.Length == 0 || class'XComGameStateContext_Ability'.static.IsHitResultMiss(ApplyEffectParameters.AbilityResultContext.HitResult))
 	{
+		// No Overwatch to restore
 		return;
 	}
 
-	// We may have to restore Overwatch like abilities, as a Hit will have removed those.
-	HitChance = ApplyEffectParameters.AbilityResultContext.CalculatedHitChance;
-	TargetUnit = XComGameState_Unit(kNewTargetState);
-	if(TargetUnit == None) return;
-
-	TotalDamage = CurrentHealth - (TargetUnit.GetCurrentStat(eStat_HP) + TargetUnit.GetCurrentStat(eStat_ShieldHP));
-	if(HitChance < Configuration.OverwatchRemovalMinimumHitChance || TotalDamage < Configuration.OverwatchRemovalMinimumDamage)
+	if(`SYNC_RAND(100) >= ApplyEffectParameters.AbilityResultContext.CalculatedHitChance)
 	{
-		// Restore Overwatch
+		// Restore Overwatch: roll based on hit chance failed
 		TargetUnit.ReserveActionPoints = ReserveActionPoints;
 	}
 }
