@@ -13,7 +13,7 @@ struct AbilityGameStateContext
 	var XComGameState_Unit TargetUnit;
 };
 
-struct WeaponDamage
+struct ReliableDamageValue
 {
 	var int Damage;
 	var int ArmorMitigation;
@@ -131,7 +131,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	if(Configuration.AdjustPlusOne) `Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
 	LogHitChance("HitChance:", fHitChance);
 
-	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fTotalDamage, fTotalArmorMitigation, true);
+	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fTotalDamage, fTotalArmorMitigation, true);
 
 	fRupture = fHitChance * NewRupture;
 	fShred = fHitChance * NewShred;
@@ -196,8 +196,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	if(Configuration.AdjustPlusOne) iMaxDamage = Max(0, iMaxDamage - PlusOneDamage.Length);
 
-	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMinDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMinDamage, fMinArmorMitigation);
-	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMaxDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMaxDamage, fMaxArmorMitigation);
+	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iMinDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMinDamage, fMinArmorMitigation);
+	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iMaxDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMaxDamage, fMaxArmorMitigation);
 
 	iMinArmorMitigation = fMinDamage == 0 ? FFloor(fMinArmorMitigation) : fMinDamage > iShield ? iArmor : FCeil(fMinArmorMitigation);
 	iMaxArmorMitigation = fMaxDamage == 0 ? FCeil(fMaxArmorMitigation) : fMaxDamage > iShield ? iArmor : FFloor(fMaxArmorMitigation);
@@ -242,7 +242,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 	}
 }
 
-private function CalculateExpectedDamageAndArmorMitigation(float fHitChance, float fMissChance, float fCritChance, float fGrazeChance, int iDamageOnHit, int iDamageOnMiss, int iDamageOnCrit, array<float> PlusOneDamage, int iShield, int iArmor, out float fDamage, out float fArmorMitigation, optional bool bWriteToLog = false)
+private function CalculateReliableDamage(float fHitChance, float fMissChance, float fCritChance, float fGrazeChance, int iDamageOnHit, int iDamageOnMiss, int iDamageOnCrit, array<float> PlusOneDamage, int iShield, int iArmor, out float fDamage, out float fArmorMitigation, optional bool bWriteToLog = false)
 {
 	local array<float> ZeroPlusOne;
 	ZeroPlusOne.Length = 0;
@@ -250,34 +250,34 @@ private function CalculateExpectedDamageAndArmorMitigation(float fHitChance, flo
 	if(Configuration.AdjustCriticalHits) fHitChance -= fCritChance;
 	if(Configuration.AdjustGrazeHits) fHitChance -= fGrazeChance;
 
-	if(fHitChance > 0) ComputeExpectedValues(CalculateDamage("Hit", fHitChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateDamage("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateDamage("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateDamage("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(fHitChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Hit", fHitChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateReliableDamageValues("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
 }
 
-private function ComputeExpectedValues(array<WeaponDamage> DamageEffects, out float fDamage, out float fArmorMitigation)
+private function ComputeExpectedValues(array<ReliableDamageValue> DamageValues, out float fDamage, out float fArmorMitigation)
 {
-	local WeaponDamage DamageValue;
+	local ReliableDamageValue DamageValue;
 
-	foreach DamageEffects(DamageValue)
+	foreach DamageValues(DamageValue)
 	{
 		fDamage += DamageValue.Damage * DamageValue.HitChance;
 		fArmorMitigation += DamageValue.ArmorMitigation * DamageValue.HitChance;
 	}
 }
 
-private function array<WeaponDamage> CalculateDamage(string HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, optional bool bWriteToLog = false)
+private function array<ReliableDamageValue> CalculateReliableDamageValues(string HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, optional bool bWriteToLog = false)
 {
-	local array<WeaponDamage> DamageEffects;
+	local array<ReliableDamageValue> DamageValues;
 	local int i, j, iPlusOneDamage;
 	local float fDamageChance, fPlusOneChance;
 	local bool bIsOn;
-	local WeaponDamage Damage;
+	local ReliableDamageValue DamageValue;
 
 	if(!Configuration.AdjustPlusOne || PlusOneDamage.Length == 0)
 	{
-		DamageEffects.AddItem(GetDamageEffect(iDamage, iShield, iArmor, fHitChance));
+		DamageValues.AddItem(GetDamageValue(iDamage, iShield, iArmor, fHitChance));
 	}
 	else
 	{
@@ -301,8 +301,8 @@ private function array<WeaponDamage> CalculateDamage(string HitResult, float fHi
 		        iPlusOneDamage += bIsOn ? 1 : 0;
 		    }
 
-			Damage = GetDamageEffect(iDamage + iPlusOneDamage, iShield, iArmor, fDamageChance);
-			DamageEffects.AddItem(Damage);
+			DamageValue = GetDamageValue(iDamage + iPlusOneDamage, iShield, iArmor, fDamageChance);
+			DamageValues.AddItem(DamageValue);
 		}
 	}
 
@@ -311,28 +311,28 @@ private function array<WeaponDamage> CalculateDamage(string HitResult, float fHi
 		`Log("");
 		`Log("===" @ Round(fHitChance * 100) $ "%" @ "|" @ HitResult @ "|" @ iDamage @ "dmg" @ "===");
 
-		foreach DamageEffects(Damage)
+		foreach DamageValues(DamageValue)
 		{
-			`Log("+" $ RoundFloat(Damage.Damage * Damage.HitChance) @ "(" $ RoundFloat(Damage.HitChance) @ "*" @ Damage.Damage $ ")");
+			`Log("+" $ RoundFloat(DamageValue.Damage * DamageValue.HitChance) @ "(" $ RoundFloat(DamageValue.HitChance) @ "*" @ DamageValue.Damage $ ")");
 		}
 	}
 
-	return DamageEffects;
+	return DamageValues;
 }
 
-private function WeaponDamage GetDamageEffect(int iDamage, int iShield, int iArmor, float fHitChance)
+private function ReliableDamageValue GetDamageValue(int iDamage, int iShield, int iArmor, float fHitChance)
 {
 	local int iTotalDamage, iArmorMitigation;
-	local WeaponDamage DamageEffect;
+	local ReliableDamageValue DamageValue;
 
 	iArmorMitigation = Clamp(iDamage - iShield, 0, iArmor);
 	iTotalDamage = Max(0, iDamage - iArmorMitigation);
 
-	DamageEffect.Damage = iTotalDamage;
-	DamageEffect.ArmorMitigation = iArmorMitigation;
-	DamageEffect.HitChance = fHitChance;
+	DamageValue.Damage = iTotalDamage;
+	DamageValue.ArmorMitigation = iArmorMitigation;
+	DamageValue.HitChance = fHitChance;
 
-	return DamageEffect;
+	return DamageValue;
 }
 
 simulated function bool PlusOneDamage(int Chance)
