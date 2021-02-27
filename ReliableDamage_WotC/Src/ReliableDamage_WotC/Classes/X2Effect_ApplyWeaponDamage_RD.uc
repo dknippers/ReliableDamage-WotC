@@ -116,26 +116,25 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("<ReliableDamage.Damage>");
 	`Log("");
 
+	// Source
 	LogUnit("Source:", AbilityContext.SourceUnit);
 	LogAbility("Ability:", AbilityContext.Ability);
-	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);
+	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);	
+
+	// Target
 	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
 	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
-	LogHitChance("HitChance:", fHitChance);
 	LogInt("Shield:", iShield, iShield != 0);
-	LogInt("Armor:", iArmor, iArmor != 0);
+	LogInt("Armor:", iArmor, iArmor != 0);	
+
+	// Damage
 	`Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
+	LogHitChance("HitChance:", fHitChance);
 
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fTotalDamage, fTotalArmorMitigation, true);
 
 	fRupture = fHitChance * NewRupture;
 	fShred = fHitChance * NewShred;
-
-	`Log("");
-	LogFloat("TotalDamage", fTotalDamage);
-	`Log("TotalRupture" @ fRupture @ "[" $ fHitChance @ "*" @ NewRupture $ "]", fRupture != 0);
-	`Log("TotalShred" @ fShred @ "[" $ fHitChance @ "*" @ NewShred $ "]", fShred != 0);
-	`Log("--------------------");
 
 	iTotalDamage = RollForInt(fTotalDamage);
 	// Armor mitigation is related to damage, we do not roll separately for it.
@@ -144,10 +143,10 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	NewShred = Min(NewShred, ArmorMitigation);
 	NewRupture = RollForInt(fRupture);
 
-	LogInt("OUT Damage", iTotalDamage);
-	LogInt("OUT Rupture", NewRupture, fRupture != 0);
-	LogInt("OUT Shred", NewShred, fShred != 0);
-	LogInt("OUT ArmorMitigation", ArmorMitigation);
+	`Log("");
+	`Log("Damage:" @ RoundFloat(fTotalDamage) @ "=>" @ iTotalDamage);
+	`Log("Rupture:" @ RoundFloat(fRupture) @ "(" $ RoundFloat(fHitChance) @ "*" @ NewRupture $ ")" @ "=>" @ NewRupture, fRupture != 0);
+	`Log("Shred:" @ RoundFloat(fShred) @ "(" $ RoundFloat(fHitChance) @ "*" @ NewShred $ ")" @ "=>" @ NewShred, fShred != 0);
 
 	`Log("");
 	`Log("</ReliableDamage.Damage>");
@@ -256,10 +255,10 @@ private function CalculateExpectedDamageAndArmorMitigation(float fHitChance, flo
 	if(Configuration.AdjustCriticalHits) fHitChance -= fCritChance;
 	if(Configuration.AdjustGrazeHits) fHitChance -= fGrazeChance;
 
-	if(fHitChance > 0) ComputeExpectedValues(CalculateDamage(eHit_Success, fHitChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateDamage(eHit_Miss, fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateDamage(eHit_Crit, fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateDamage(eHit_Graze, fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(fHitChance > 0) ComputeExpectedValues(CalculateDamage("Hit", fHitChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateDamage("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateDamage("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateDamage("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
 }
 
 private function ComputeExpectedValues(array<WeaponDamage> DamageEffects, out float fDamage, out float fArmorMitigation)
@@ -273,7 +272,7 @@ private function ComputeExpectedValues(array<WeaponDamage> DamageEffects, out fl
 	}
 }
 
-private function array<WeaponDamage> CalculateDamage(EAbilityHitResult HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, optional bool bWriteToLog = false)
+private function array<WeaponDamage> CalculateDamage(string HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, optional bool bWriteToLog = false)
 {
 	local array<WeaponDamage> DamageEffects;
 	local int i, j, iPlusOneDamage;
@@ -315,11 +314,11 @@ private function array<WeaponDamage> CalculateDamage(EAbilityHitResult HitResult
 	if(bWriteToLog)
 	{
 		`Log("");
-		`Log("===" @ HitResult @ "|" @ int(fHitChance * 100) $ "%" @ "|" @ iDamage @ "===");
+		`Log("===" @ Round(fHitChance * 100) $ "%" @ "|" @ HitResult @ "|" @ iDamage @ "dmg" @ "===");
 
 		foreach DamageEffects(Damage)
 		{
-			`Log("+" $ Damage.Damage * Damage.HitChance @ "[" $ Damage.HitChance @ "*" @ Damage.Damage $ "]");
+			`Log("+" $ RoundFloat(Damage.Damage * Damage.HitChance) @ "(" $ RoundFloat(Damage.HitChance) @ "*" @ Damage.Damage $ ")");
 		}
 	}
 
@@ -395,8 +394,11 @@ private function float GetHitChance(XComGameState_Ability Ability, StateObjectRe
 		? Breakdown.ResultTable[eHit_Crit] + Breakdown.ResultTable[eHit_Success]
 		: Breakdown.ResultTable[eHit_Crit];
 
-	fCritChance = Clamp(iCritChance, 0, 100) / 100.0f;
-	fGrazeChance = Clamp(Breakdown.ResultTable[eHit_Graze], 0, 100) / 100.0f;
+	// Clamp Crit and Graze to a maximum of iHitChance to prevent
+	// situations where the final hit chance is only 2% but game still claims
+	// Crit chance is 10%.
+	fCritChance = Clamp(iCritChance, 0, iHitChance) / 100.0f;
+	fGrazeChance = Clamp(Breakdown.ResultTable[eHit_Graze], 0, iHitChance) / 100.0f;
 
 	ModifyHitChanceForSpecialCase(Ability, TargetRef, fHitChance, fCritChance, fGrazeChance);
 
@@ -627,11 +629,16 @@ private function int RollForInt(float Value)
 	return `SYNC_RAND(100) < MaxValueChance ? MaxValue : MinValue;
 }
 
+private function string RoundFloat(float Value)
+{
+	local string sValue;
+	sValue = string(Round(Value * 100) / 100.0f);
+	return Left(sValue, Len(sValue) - 2);
+}
+
 private function LogFloat(string Message, float Number, optional bool Condition = true)
 {
-	local string Rounded;
-	Rounded = string(int(Number * 100) / 100.0f);
-	`Log(Message @ Left(Rounded, Len(Rounded) - 2), Condition);
+	`Log(Message @ RoundFloat(Number), Condition);
 }
 
 private function LogInt(string Message, int Number, optional bool Condition = true)
@@ -641,7 +648,7 @@ private function LogInt(string Message, int Number, optional bool Condition = tr
 
 private function LogHitChance(string Message, float HitChance, optional bool Condition = true)
 {
-	`Log(Message @ int(HitChance * 100) $ "%", Condition);
+	`Log(Message @ Round(HitChance * 100) $ "%", Condition);
 }
 
 private function LogUnit(string Message, XComGameState_Unit Unit)

@@ -206,6 +206,7 @@ private function RemoveDamageSpreadFromWeapons()
 	local X2DataTemplate DataTemplate;
 	local array<X2DataTemplate> DataTemplates;
 
+	`Log("");
 	`Log("<ReliableDamage.RemoveDamageSpread />");
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
@@ -265,6 +266,7 @@ private function ApplyAmmoEffectsBasedOnHitChance()
 	local X2DataTemplate DataTemplate;
 	local array<X2DataTemplate> DataTemplates;
 
+	`Log("");
 	`Log("<ReliableDamage.ApplyAmmoEffectsBasedOnHitChance>");
 
 	ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
