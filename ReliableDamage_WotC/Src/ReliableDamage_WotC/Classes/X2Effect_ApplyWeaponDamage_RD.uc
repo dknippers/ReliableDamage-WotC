@@ -138,13 +138,16 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("--------------------");
 
 	iTotalDamage = RollForInt(fTotalDamage);
+	// Armor mitigation is related to damage, we do not roll separately for it.
+	ArmorMitigation = iTotalDamage > fTotalDamage ? FFloor(fTotalArmorMitigation) : FCeil(fTotalArmorMitigation);
+	// Shred is related to armor mitigation, we also do not roll for that.
+	NewShred = Min(NewShred, ArmorMitigation);
 	NewRupture = RollForInt(fRupture);
-	NewShred = RollForInt(fShred);
-	ArmorMitigation = iTotalDamage > iShield ? iArmor : Max(NewShred, RollForInt(fTotalArmorMitigation));
 
 	LogInt("OUT Damage", iTotalDamage);
 	LogInt("OUT Rupture", NewRupture, fRupture != 0);
 	LogInt("OUT Shred", NewShred, fShred != 0);
+	LogInt("OUT ArmorMitigation", ArmorMitigation);
 
 	`Log("");
 	`Log("</ReliableDamage.Damage>");
@@ -156,7 +159,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fMinDamage, fMaxDamage, fMinArmorMitigation, fMaxArmorMitigation;
-	local int iMinDamage, iMaxDamage, iDamageOnCrit, iDamageOnMiss, iRuptureDamage, iShield, iArmor, iArmorPiercing;
+	local int iMinDamage, iMaxDamage, iDamageOnCrit, iDamageOnMiss, iRuptureDamage, iShield, iArmor, iArmorPiercing, iMinArmorMitigation, iMaxArmorMitigation;
 	local array<float> PlusOneDamage;
 	local ApplyDamageInfo DamageInfo;
 	local AbilityGameStateContext AbilityContext;
@@ -195,15 +198,12 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMinDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMinDamage, fMinArmorMitigation);
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMaxDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMaxDamage, fMaxArmorMitigation);
 
-	iMinDamage = Max(0, FFloor(fMinDamage) - iRuptureDamage);
-	iMaxDamage = Max(0, FCeil(fMaxDamage) - iRuptureDamage);
-
-	iMinDamage += iMinDamage > iShield ? iArmor : FFloor(fMinArmorMitigation);
-	iMaxDamage += iMaxDamage > iShield ? iArmor : FCeil(fMaxArmorMitigation);
+	iMinArmorMitigation = fMinDamage == 0 ? FFloor(fMinArmorMitigation) : fMinDamage > iShield ? iArmor : FCeil(fMinArmorMitigation);
+	iMaxArmorMitigation = fMaxDamage == 0 ? FCeil(fMaxArmorMitigation) : fMaxDamage > iShield ? iArmor : FFloor(fMaxArmorMitigation);
 
 	// Damage
-	MinDamagePreview.Damage = iMinDamage;
-	MaxDamagePreview.Damage = iMaxDamage;
+	MinDamagePreview.Damage = FFloor(fMinDamage) + iMinArmorMitigation - iRuptureDamage;
+	MaxDamagePreview.Damage = FCeil(fMaxDamage) + iMaxArmorMitigation - iRuptureDamage;
 
 	// Rupture
 	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);

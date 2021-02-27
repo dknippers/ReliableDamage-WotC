@@ -309,22 +309,13 @@ private function name ApplyAmmoChance(const out EffectAppliedData ApplyEffectPar
 {
 	local XComGameState_Ability Ability;
 
-	// DEBUG TMP
-	local name RollResult;
-
 	Ability = XComGameState_Ability(`XCOMHISTORY.GetGameStateForObjectID(ApplyEffectParameters.AbilityStateObjectRef.ObjectID));
 	if(Ability != None && Ability.GetMyTemplate().AbilityToHitCalc.IsA('X2AbilityToHitCalc_StandardAim_RD'))
 	{
 		// Roll for success based on original HitChance.
-		RollResult = `SYNC_RAND(100) < ApplyEffectParameters.AbilityResultContext.CalculatedHitChance ? 'AA_Success' : 'AA_EffectChanceFailed';
-
-		`Log("Roll with chance" @ ApplyEffectParameters.AbilityResultContext.CalculatedHitChance @ ", outcome =" @ RollResult);
-
-		return RollResult;
-	}
-	else
-	{
-		`Log("Ability" @ Ability.GetMyFriendlyName() @ "does not have a standardaim RD!");
+		return `SYNC_RAND(100) < ApplyEffectParameters.AbilityResultContext.CalculatedHitChance
+			? 'AA_Success'
+			: 'AA_EffectChanceFailed';
 	}
 
 	// Default is success, without this ApplyChanceFn the game always applies all effects.
