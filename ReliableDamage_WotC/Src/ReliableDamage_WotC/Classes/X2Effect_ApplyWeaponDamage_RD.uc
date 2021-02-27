@@ -119,13 +119,13 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	// Source
 	LogUnit("Source:", AbilityContext.SourceUnit);
 	LogAbility("Ability:", AbilityContext.Ability);
-	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);	
+	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);
 
 	// Target
 	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
 	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
 	LogInt("Shield:", iShield, iShield != 0);
-	LogInt("Armor:", iArmor, iArmor != 0);	
+	LogInt("Armor:", iArmor, iArmor != 0);
 
 	// Damage
 	`Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
@@ -192,7 +192,9 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	// We also include the preview Rupture as this is immediately applied to the target as damage as well.
 	// This is something that XCOM leaves out by default as well and is incorrect so we fix that here.
 	iMinDamage = MinDamagePreview.Damage + iRuptureDamage + MinDamagePreview.Rupture;
-	iMaxDamage = Max(0, MaxDamagePreview.Damage + iRuptureDamage + MaxDamagePreview.Rupture - PlusOneDamage.Length);
+	iMaxDamage = MaxDamagePreview.Damage + iRuptureDamage + MaxDamagePreview.Rupture;
+
+	if(Configuration.AdjustPlusOne) iMaxDamage = Max(0, iMaxDamage - PlusOneDamage.Length);
 
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMinDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMinDamage, fMinArmorMitigation);
 	CalculateExpectedDamageAndArmorMitigation(fHitChance, fMissChance, fCritChance, fGrazeChance, iMaxDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMaxDamage, fMaxArmorMitigation);
