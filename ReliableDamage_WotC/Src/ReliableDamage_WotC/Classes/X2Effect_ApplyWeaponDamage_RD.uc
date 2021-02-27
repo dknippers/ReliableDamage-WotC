@@ -164,12 +164,15 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	CalculateReliableDamage(AbilityContext, iMinDamage, fMinDamage, fMinArmorMitigation, fHitChance);
 	CalculateReliableDamage(AbilityContext, iMaxDamage, fMaxDamage, fMaxArmorMitigation);
 
-	iMinArmorMitigation = fMinDamage == 0 ? FFloor(fMinArmorMitigation) : fMinDamage > iShield ? iArmor : FCeil(fMinArmorMitigation);
-	iMaxArmorMitigation = fMaxDamage == 0 ? FCeil(fMaxArmorMitigation) : fMaxDamage > iShield ? iArmor : FFloor(fMaxArmorMitigation);
+	iMinDamage = FFloor(fMinDamage);
+	iMaxDamage = FCeil(fMaxDamage);
+	
+	iMinArmorMitigation = fMinDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FFloor(fMinArmorMitigation) : FCeil(fMinArmorMitigation);
+	iMaxArmorMitigation = fMaxDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FCeil(fMaxArmorMitigation) : FFloor(fMaxArmorMitigation);
 
 	// Damage
-	MinDamagePreview.Damage = FFloor(fMinDamage) + iMinArmorMitigation - iRuptureDamage;
-	MaxDamagePreview.Damage = FCeil(fMaxDamage) + iMaxArmorMitigation - iRuptureDamage;
+	MinDamagePreview.Damage = iMinDamage + iMinArmorMitigation - iRuptureDamage;
+	MaxDamagePreview.Damage = iMaxDamage + iMaxArmorMitigation - iRuptureDamage;
 
 	// Rupture
 	MinDamagePreview.Rupture = FFloor(fHitChance * MinDamagePreview.Rupture);
