@@ -11,6 +11,9 @@ struct AbilityGameStateContext
 	var XComGameState_Item SourceWeapon;
 	var XComGameState_BaseObject TargetObject;
 	var XComGameState_Unit TargetUnit;
+	var int TargetShield;
+	var int TargetArmor;
+	var ApplyDamageInfo DamageInfo;
 };
 
 struct ReliableDamageValue
@@ -77,14 +80,12 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState)
 {
-	local int iTotalDamage, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, iArmorPiercing, iArmor, iShield;
-	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fTotalDamage, fTotalArmorMitigation, fShred, fRupture;
+	local int iDamage, iRupture, iShred;
+	local float fHitChance, fDamage, fArmorMitigation, fShred, fRupture;
 	local AbilityGameStateContext AbilityContext;
-	local ApplyDamageInfo DamageInfo;
-	local array<float> PlusOneDamage;
 
 	// Calculate damage as usual
-	iDamageOnHit = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, NewRupture, NewShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
+	iDamage = super.CalculateDamageAmount(ApplyEffectParameters, ArmorMitigation, iRupture, iShred, AppliedDamageTypes, bAmmoIgnoresShields, bFullyImmune, SpecialDamageMessages, NewGameState);
 
 	if(
 		ApplyEffectParameters.AbilityResultContext.HitResult != eHit_Success ||
@@ -92,75 +93,47 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	)
 	{
 		// Do not modify in this scenario, just return value from super.
-		return iDamageOnHit;
+		return iDamage;
 	}
 
-	iDamageOnHit += ArmorMitigation;
-	ArmorMitigation = 0;
-
-	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
-	DamageInfo = CalculateDamageInfo(AbilityContext);
-
-	iShield = AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetCurrentStat(eStat_ShieldHP) : 0.0f;
-	iArmorPiercing = GetArmorPiercing(AbilityContext, DamageInfo);
-	iArmor = bIgnoreArmor ? 0 : GetArmorMitigation(ApplyEffectParameters.TargetStateObjectRef, iArmorPiercing);
-
-	fHitChance = GetHitChance(AbilityContext.Ability, ApplyEffectParameters.TargetStateObjectRef, fCritChance, fGrazeChance);
-	fMissChance = 1.0f - fHitChance;
-
-	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
-	iDamageOnCrit = GetDamageOnCrit(AbilityContext, DamageInfo);
-	PlusOneDamage = GetPlusOneDamage(DamageInfo);
+	iDamage += ArmorMitigation;
 
 	`Log("");
 	`Log("<ReliableDamage.Damage>");
 	`Log("");
 
-	// Source
-	LogUnit("Source:", AbilityContext.SourceUnit);
-	LogAbility("Ability:", AbilityContext.Ability);
-	if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);
+	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
 
-	// Target
-	if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
-	else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
-	LogInt("Shield:", iShield, iShield != 0);
-	LogInt("Armor:", iArmor, iArmor != 0);
+	CalculateReliableDamage(AbilityContext, iDamage, fDamage, fArmorMitigation, fHitChance, true);
 
-	// Damage
-	if(Configuration.AdjustPlusOne) `Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
-	LogHitChance("HitChance:", fHitChance);
+	fRupture = fHitChance * iRupture;
+	fShred = fHitChance * iShred;
 
-	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iDamageOnHit, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fTotalDamage, fTotalArmorMitigation, true);
+	iDamage = RollForInt(fDamage);
 
-	fRupture = fHitChance * NewRupture;
-	fShred = fHitChance * NewShred;
-
-	iTotalDamage = RollForInt(fTotalDamage);
 	// Armor mitigation is related to damage, we do not roll separately for it.
-	ArmorMitigation = iTotalDamage > fTotalDamage ? FFloor(fTotalArmorMitigation) : FCeil(fTotalArmorMitigation);
+	ArmorMitigation = iDamage > fDamage ? FFloor(fArmorMitigation) : FCeil(fArmorMitigation);
 	// Shred is related to armor mitigation, we also do not roll for that.
-	NewShred = Min(NewShred, ArmorMitigation);
+	NewShred = Min(iShred, ArmorMitigation);
 	NewRupture = RollForInt(fRupture);
 
 	`Log("");
-	`Log("Damage:" @ RoundFloat(fTotalDamage) @ "=>" @ iTotalDamage);
-	`Log("Rupture:" @ RoundFloat(fRupture) @ "(" $ RoundFloat(fHitChance) @ "*" @ NewRupture $ ")" @ "=>" @ NewRupture, fRupture != 0);
-	`Log("Shred:" @ RoundFloat(fShred) @ "(" $ RoundFloat(fHitChance) @ "*" @ NewShred $ ")" @ "=>" @ NewShred, fShred != 0);
+	`Log("Damage:" @ RoundFloat(fDamage) @ "=>" @ iDamage);
+	`Log("Rupture:" @ RoundFloat(fRupture) @ "(" $ RoundFloat(fHitChance) @ "*" @ iRupture $ ")" @ "=>" @ NewRupture, fRupture != 0);
+	`Log("Shred:" @ RoundFloat(fShred) @ "(" $ RoundFloat(fHitChance) @ "*" @ iShred $ ")" @ "=>" @ NewShred, fShred != 0);
 
 	`Log("");
 	`Log("</ReliableDamage.Damage>");
 	`Log("");
 
-	return iTotalDamage;
+	return iDamage;
 }
 
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
-	local float fHitChance, fMissChance, fCritChance, fGrazeChance, fMinDamage, fMaxDamage, fMinArmorMitigation, fMaxArmorMitigation;
-	local int iMinDamage, iMaxDamage, iDamageOnCrit, iDamageOnMiss, iRuptureDamage, iShield, iArmor, iArmorPiercing, iMinArmorMitigation, iMaxArmorMitigation;
+	local float fHitChance, fMinDamage, fMaxDamage, fMinArmorMitigation, fMaxArmorMitigation;
+	local int iMinDamage, iMaxDamage, iRuptureDamage, iShield, iArmor, iMinArmorMitigation, iMaxArmorMitigation;
 	local array<float> PlusOneDamage;
-	local ApplyDamageInfo DamageInfo;
 	local AbilityGameStateContext AbilityContext;
 
 	// Default behavior
@@ -172,17 +145,9 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	}
 
 	AbilityContext = GetAbilityContext(AbilityState.GetReference(), TargetRef);
-	DamageInfo = CalculateDamageInfo(AbilityContext);
-
-	iShield = AbilityContext.TargetUnit != None ? AbilityContext.TargetUnit.GetCurrentStat(eStat_ShieldHP) : 0.0f;
-	iArmorPiercing = GetArmorPiercing(AbilityContext, DamageInfo);
-	iArmor = bIgnoreArmor ? 0 : GetArmorMitigation(TargetRef, iArmorPiercing);
-
-	fHitChance = GetHitChance(AbilityState, TargetRef, fCritChance, fGrazeChance);
-	fMissChance = 1.0f - fHitChance;
-	iDamageOnMiss = GetDamageOnMiss(AbilityState);
-	iDamageOnCrit = GetDamageOnCrit(AbilityContext, DamageInfo);
-	PlusOneDamage = GetPlusOneDamage(DamageInfo);
+	iArmor = AbilityContext.TargetArmor;
+	iShield = AbilityContext.TargetShield;
+	PlusOneDamage = GetPlusOneDamage(AbilityContext.DamageInfo);
 
 	// XCOM adds Rupture bonus damage later as a constant bonus to both Minimum and Maximum damage.
 	// We want to scale this bonus like all other damage so we add it here to both iMin & iMax damage
@@ -196,8 +161,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	if(Configuration.AdjustPlusOne) iMaxDamage = Max(0, iMaxDamage - PlusOneDamage.Length);
 
-	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iMinDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMinDamage, fMinArmorMitigation);
-	CalculateReliableDamage(fHitChance, fMissChance, fCritChance, fGrazeChance, iMaxDamage, iDamageOnMiss, iDamageOnCrit, PlusOneDamage, iShield, iArmor, fMaxDamage, fMaxArmorMitigation);
+	CalculateReliableDamage(AbilityContext, iMinDamage, fMinDamage, fMinArmorMitigation, fHitChance);
+	CalculateReliableDamage(AbilityContext, iMaxDamage, fMaxDamage, fMaxArmorMitigation);
 
 	iMinArmorMitigation = fMinDamage == 0 ? FFloor(fMinArmorMitigation) : fMinDamage > iShield ? iArmor : FCeil(fMinArmorMitigation);
 	iMaxArmorMitigation = fMaxDamage == 0 ? FCeil(fMaxArmorMitigation) : fMaxDamage > iShield ? iArmor : FFloor(fMaxArmorMitigation);
@@ -242,10 +207,40 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 	}
 }
 
-private function CalculateReliableDamage(float fHitChance, float fMissChance, float fCritChance, float fGrazeChance, int iDamageOnHit, int iDamageOnMiss, int iDamageOnCrit, array<float> PlusOneDamage, int iShield, int iArmor, out float fDamage, out float fArmorMitigation, optional bool bWriteToLog = false)
+private function CalculateReliableDamage(AbilityGameStateContext AbilityContext, int iDamageOnHit, out float fDamage, out float fArmorMitigation, optional out float fHitChance, optional bool bWriteToLog = false)
 {
-	local array<float> ZeroPlusOne;
+	local int iDamageOnMiss, iDamageOnCrit, iArmor, iShield;
+	local float fMissChance, fCritChance, fGrazeChance;
+	local array<float> PlusOneDamage, ZeroPlusOne;
 	ZeroPlusOne.Length = 0;
+
+	iShield = AbilityContext.TargetShield;
+	iArmor = AbilityContext.TargetArmor;
+
+	fHitChance = GetHitChance(AbilityContext.Ability, AbilityContext.TargetUnit.GetReference(), fCritChance, fGrazeChance);
+	fMissChance = 1.0f - fHitChance;
+
+	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
+	iDamageOnCrit = GetDamageOnCrit(AbilityContext);
+	PlusOneDamage = GetPlusOneDamage(AbilityContext.DamageInfo);
+
+	if(bWriteToLog)
+	{
+		// Source
+		LogUnit("Source:", AbilityContext.SourceUnit);
+		LogAbility("Ability:", AbilityContext.Ability);
+		if(AbilityContext.SourceWeapon != None) LogItem("Weapon:", AbilityContext.SourceWeapon);
+
+		// Target
+		if(AbilityContext.TargetUnit != None) LogUnit("Target:", AbilityContext.TargetUnit);
+		else if(AbilityContext.TargetObject != None) `Log("Target:" @ AbilityContext.TargetObject.Class);
+		LogInt("Shield:", iShield, iShield != 0);
+		LogInt("Armor:", iArmor, iArmor != 0);
+
+		// Damage
+		if(Configuration.AdjustPlusOne) `Log("PlusOneDamage:" @ "0-" $ PlusOneDamage.Length, PlusOneDamage.Length > 0);
+		LogHitChance("HitChance:", fHitChance);
+	}
 
 	if(Configuration.AdjustCriticalHits) fHitChance -= fCritChance;
 	if(Configuration.AdjustGrazeHits) fHitChance -= fGrazeChance;
@@ -360,12 +355,12 @@ function static bool UnitIsTheLost(StateObjectReference TargetRef)
 	return TargetUnit != None && TargetUnit.GetTeam() == eTeam_TheLost;
 }
 
-private function ApplyDamageInfo CalculateDamageInfo(AbilityGameStateContext AbilityContext)
+private function ApplyDamageInfo CalculateDamageInfo(XComGameState_Item SourceWeapon, XComGameState_Unit SourceUnit, XComGameState_Unit TargetUnit, XComGameState_Ability Ability)
 {
 	local ApplyDamageInfo DamageInfo;
 	local array<Name> AppliedDamageTypes;
 
-	super.CalculateDamageValues(AbilityContext.SourceWeapon, AbilityContext.SourceUnit, AbilityContext.TargetUnit, AbilityContext.Ability, DamageInfo, AppliedDamageTypes);
+	super.CalculateDamageValues(SourceWeapon, SourceUnit, TargetUnit, Ability, DamageInfo, AppliedDamageTypes);
 
 	return DamageInfo;
 }
@@ -447,7 +442,7 @@ private function int GetDamageOnMiss(XComGameState_Ability Ability)
 	return iDamageOnHitOnMiss;
 }
 
-private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext, ApplyDamageInfo DamageInfo)
+private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext)
 {
 	local XComGameState_Effect Effect;
 	local StateObjectReference EffectRef;
@@ -456,11 +451,11 @@ private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext, App
 	local EffectAppliedData TestEffectData;
 
 	iCritDamage =
-		DamageInfo.BaseDamageValue.Crit +
-		DamageInfo.ExtraDamageValue.Crit +
-		DamageInfo.BonusEffectDamageValue.Crit +
-		DamageInfo.AmmoDamageValue.Crit +
-		DamageInfo.UpgradeDamageValue.Crit;
+		AbilityContext.DamageInfo.BaseDamageValue.Crit +
+		AbilityContext.DamageInfo.ExtraDamageValue.Crit +
+		AbilityContext.DamageInfo.BonusEffectDamageValue.Crit +
+		AbilityContext.DamageInfo.AmmoDamageValue.Crit +
+		AbilityContext.DamageInfo.UpgradeDamageValue.Crit;
 
 	ChangeHitResults(TestEffectData.AbilityResultContext, eHit_Success, eHit_Crit);
 
@@ -475,7 +470,7 @@ private function int GetDamageOnCrit(AbilityGameStateContext AbilityContext, App
 	return iCritDamage;
 }
 
-private function int GetArmorPiercing(AbilityGameStateContext AbilityContext, ApplyDamageInfo DamageInfo)
+private function int GetArmorPiercing(XComGameState_Ability Ability, XComGameState_Unit SourceUnit, XComGameState_BaseObject TargetObject, ApplyDamageInfo DamageInfo)
 {
 	local XComGameState_Effect Effect;
 	local StateObjectReference EffectRef;
@@ -491,33 +486,34 @@ private function int GetArmorPiercing(AbilityGameStateContext AbilityContext, Ap
 		DamageInfo.AmmoDamageValue.Pierce +
 		DamageInfo.UpgradeDamageValue.Pierce;
 
-	TestEffectData = CreateTestEffectData(AbilityContext.Ability, AbilityContext.TargetObject.GetReference());
-	foreach AbilityContext.SourceUnit.AffectedByEffects(EffectRef)
+	TestEffectData = CreateTestEffectData(Ability, TargetObject.GetReference());
+	foreach SourceUnit.AffectedByEffects(EffectRef)
 	{
 		Effect = XComGameState_Effect(GetGameStateObject(EffectRef));
 		EffectTemplate = Effect.GetX2Effect();
-		iExtraArmorPiercing = EffectTemplate.GetExtraArmorPiercing(Effect, AbilityContext.SourceUnit, Damageable(AbilityContext.TargetObject), AbilityContext.Ability, TestEffectData);
-		LogInt("Extra armor piercing from" @ EffectTemplate.Name, iExtraArmorPiercing, iExtraArmorPiercing > 0);
+		iExtraArmorPiercing = EffectTemplate.GetExtraArmorPiercing(Effect, SourceUnit, Damageable(TargetObject), Ability, TestEffectData);
 		iArmorPiercing += iExtraArmorPiercing;
 	}
 
 	return iArmorPiercing;
 }
 
-private function int GetArmorMitigation(StateObjectReference TargetRef, optional int Pierce = 0)
+private function int GetArmorMitigation(XComGameState_Ability Ability, XComGameState_Unit SourceUnit, XComGameState_BaseObject TargetObject, ApplyDamageInfo DamageInfo)
 {
 	local Damageable Damageable;
 	local ArmorMitigationResults ArmorMitigationResults;
-	local int iArmorMitigation;
+	local int iArmorMitigation, iArmorPiercing;
 
-	Damageable = Damageable(GetGameStateObject(TargetRef));
+	Damageable = Damageable(TargetObject);
 	if(Damageable == None) return 0;
+
+	iArmorPiercing = GetArmorPiercing(Ability, SourceUnit, TargetObject, DamageInfo);
 
 	// Cannot be negative
 	iArmorMitigation = Max(0, Damageable.GetArmorMitigation(ArmorMitigationResults));
 
 	// Reduced by Pierce
-	iArmorMitigation = Max(0, iArmorMitigation - Pierce);
+	iArmorMitigation = Max(0, iArmorMitigation - iArmorPiercing);
 
 	return iArmorMitigation;
 }
@@ -565,6 +561,13 @@ private function AbilityGameStateContext GetAbilityContext(StateObjectReference 
 	Context.SourceWeapon = GetWeapon(Ability);
 	Context.TargetObject = GetGameStateObject(TargetRef, NewGameState);
 	Context.TargetUnit = XComGameState_Unit(Context.TargetObject);
+	Context.DamageInfo = CalculateDamageInfo(Context.SourceWeapon, Context.SourceUnit, Context.TargetUnit, Context.Ability);
+
+	if(Context.TargetUnit != None)
+	{
+		Context.TargetShield = Context.TargetUnit.GetCurrentStat(eStat_ShieldHP);
+		Context.TargetArmor = bIgnoreArmor ? 0 : GetArmorMitigation(Ability, Context.SourceUnit, Context.TargetObject, Context.DamageInfo);
+	}
 
 	return Context;
 }
