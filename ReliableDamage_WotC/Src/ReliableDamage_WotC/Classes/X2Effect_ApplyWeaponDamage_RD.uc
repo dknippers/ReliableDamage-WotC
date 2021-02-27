@@ -210,7 +210,7 @@ simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffe
 private function CalculateReliableDamage(AbilityGameStateContext AbilityContext, int iDamageOnHit, out float fDamage, out float fArmorMitigation, optional out float fHitChance, optional bool bWriteToLog = false)
 {
 	local int iDamageOnMiss, iDamageOnCrit, iArmor, iShield;
-	local float fMissChance, fCritChance, fGrazeChance;
+	local float fMissChance, fHitOnlyChance, fCritChance, fGrazeChance;
 	local array<float> PlusOneDamage, ZeroPlusOne;
 	ZeroPlusOne.Length = 0;
 
@@ -218,6 +218,7 @@ private function CalculateReliableDamage(AbilityGameStateContext AbilityContext,
 	iArmor = AbilityContext.TargetArmor;
 
 	fHitChance = GetHitChance(AbilityContext.Ability, AbilityContext.TargetUnit.GetReference(), fCritChance, fGrazeChance);
+	fHitOnlyChance = fHitChance;
 	fMissChance = 1.0f - fHitChance;
 
 	iDamageOnMiss = GetDamageOnMiss(AbilityContext.Ability);
@@ -242,10 +243,10 @@ private function CalculateReliableDamage(AbilityGameStateContext AbilityContext,
 		LogHitChance("HitChance:", fHitChance);
 	}
 
-	if(Configuration.AdjustCriticalHits) fHitChance -= fCritChance;
-	if(Configuration.AdjustGrazeHits) fHitChance -= fGrazeChance;
+	if(Configuration.AdjustCriticalHits) fHitOnlyChance -= fCritChance;
+	if(Configuration.AdjustGrazeHits) fHitOnlyChance -= fGrazeChance;
 
-	if(fHitChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Hit", fHitChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	if(fHitOnlyChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Hit", fHitOnlyChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
 	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateReliableDamageValues("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
 	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
 	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
