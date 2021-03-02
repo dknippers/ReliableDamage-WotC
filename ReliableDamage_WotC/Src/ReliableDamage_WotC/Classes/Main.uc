@@ -32,6 +32,13 @@ private function MaybeUpdateAbility(X2AbilityTemplate AbilityTemplate)
 	local X2AbilityToHitCalc_StandardAim_RD StandardAim_RD;
 	local bool bSingleTargetEffectWasReplaced, bMultiTargetEffectWasReplaced;
 
+	if(Configuration.DisableForAbilities.Find(AbilityTemplate.DataName) >= 0)
+	{
+		// User has disabled this mod for the given ability.
+		`Log("[DISABLED]" @ AbilityTemplate.DataName);
+		return;
+	}
+
 	// We only change abilities that use StandardAim
 	StandardAim = X2AbilityToHitCalc_StandardAim(AbilityTemplate.AbilityToHitCalc);
 	if(StandardAim == None) return;
