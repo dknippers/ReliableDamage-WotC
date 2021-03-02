@@ -1,5 +1,5 @@
 ﻿[h1]Description[/h1]
-This mod attempts to remove various RNG elements present in the game when you take a shot.
+This mod removes various RNG elements present in the game when you take a shot.
 All shots will now hit but deal the expected value of the shot (<hit_chance> * <damage>) as damage rather than hit for 100% or miss for 0%.
 This greatly reduces the variance in damage and makes damage output much more reliable.
 Applying the expected value averages out to the exact same amount of total damage that is delivered, just without the RNG of critting / hitting / grazing / missing.
@@ -17,9 +17,9 @@ The original mod for XCOM 2 without War of the Chosen can be found [url=https://
 [/list]
 [*] Critical damage / Graze shots are removed but their effects are incorporated in every shot instead (i.e., 25% chance to crit for an additional 4 damage would simply do +1 damage on each shot instead). This is configurable, both types of shots can be restored to normal if desired.
 [*] Abilities like Viper's Bind and Skirimisher's Justice are not influenced and can still miss of course.
-[*] All Weapon spread is removed
+[*] All Weapon spread is removed (can be restored in via config)
 [list]
-[*] By default a bunch of weapons have weapon spread. This simply means a weapon will not do exactly X damage but can do anywhere from X-S to X+S damage where S is the spread.
+[*] Spread means a weapon will not do exactly X damage but can do anywhere from X-S to X+S damage where S is the spread.
 [*] Spread only increases variance and does not impact the expected value of a shot so can be safely removed for more reliable damage.
 [/list]
 [/list]
@@ -54,12 +54,20 @@ That file also contains a full description of each option, so look there for mor
 [*] Set to 0 to revert to default XCOM behavior
 [/list]
 [*] [b]ApplyAmmoEffectsBasedOnHitChance[/b] - If set to 1 ammo effects like Dragon Rounds' Burning effect will not be applied on every hit (which is 100% in this mod) but will be applied on hit with a probability equal to the original hit chance.
-[*] [b]ApplyVsTheLost[/b] - To disable all effects of this mod when targeting The Lost set this to 0.
+[*] [b]ApplyVsTheLost[/b] - To disable all effects of this mod when targeting The Lost set this to 0. Default is 1.
 [list]
 [*] The Lost are relatively low HP so trading shot damage for a guaranteed hit is very powerful, especially combined with the "Headshot" ability that restores 1 action point when killing a Lost. It is therefore possible to disable all effects of this mod when targeting The Lost units by setting this option to 0.
 [/list]
-[*] [b]RemoveDamageSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove.
-[*] [b]RemoveOverwatchBasedOnHitChance[/b] - Set this option to 1 to remove Overwatch with a chance equal to the original hit chance, rather than 100% of the time (since shots do not miss anymore).
+[*] [b]DisableForAbilities[/b] - Disable this mod entirely for specific abilities. You can specify multiple abilities on separate lines.
+[list]
+[*] For example, to disable the sniper standard shot and the ability Hail of Bullets you can use
+[code]
++DisableForAbilities=SniperStandardFire
++DisableForAbilities=HailOfBullets
+[/code]
+[/list]
+[*] [b]RemoveDamageSpread[/b] - Removes damage spread from weapons and abilities. 0 to retain all damage spread, 1 to remove. Default is 1.
+[*] [b]RemoveOverwatchBasedOnHitChance[/b] - Set this option to 1 to remove Overwatch with a chance equal to the original hit chance, rather than 100% of the time (since shots do not miss anymore). Default is 1.
 [/list]
 
 [h1]Overrides[/h1]
@@ -71,9 +79,12 @@ We do selectively replace instances of the following classes with customized ver
 [/list]
 
 [h1]Incompatible mods[/h1]
+In general, any mods that adjust and/or override the classes listed in [b]Overrides[/b] will likely cause issues.
+The list below is compiled based on comments of users and/or my own experience
 If you experience issues with other mods, please let me know and I will update the list below.
 [list]
-[*] ( none so far )
+[*] [WOTC] Cover Damage Reduction
+[*] [WOTC] EU Aim Rolls
 [/list]
 
 If you find any issues, please let me know in the comments.
