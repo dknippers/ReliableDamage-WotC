@@ -110,11 +110,10 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	fShred = fHitChance * iShred;
 
 	iDamage = RollForInt(fDamage);
-
 	// Armor mitigation is related to damage, we do not roll separately for it.
 	ArmorMitigation = iDamage > fDamage ? FFloor(fArmorMitigation) : FCeil(fArmorMitigation);
-	// Shred is related to armor mitigation, we also do not roll for that.
-	NewShred = Min(iShred, ArmorMitigation);
+	// We do roll for Shred but it can never exceed the armor mitigation: it is part of it.
+	NewShred = Min(RollForInt(fShred), ArmorMitigation);
 	NewRupture = RollForInt(fRupture);
 
 	`Log("");
@@ -166,7 +165,7 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 
 	iMinDamage = FFloor(fMinDamage);
 	iMaxDamage = FCeil(fMaxDamage);
-	
+
 	iMinArmorMitigation = fMinDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FFloor(fMinArmorMitigation) : FCeil(fMinArmorMitigation);
 	iMaxArmorMitigation = fMaxDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FCeil(fMaxArmorMitigation) : FFloor(fMaxArmorMitigation);
 
