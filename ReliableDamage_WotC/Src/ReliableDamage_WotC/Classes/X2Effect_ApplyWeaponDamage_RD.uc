@@ -16,13 +16,6 @@ struct AbilityGameStateContext
 	var ApplyDamageInfo DamageInfo;
 };
 
-struct ReliableDamageValue
-{
-	var int Damage;
-	var int ArmorMitigation;
-	var float HitChance;
-};
-
 // Copies all properties from the given X2Effect_ApplyWeaponDamage
 function Clone(X2Effect_ApplyWeaponDamage Source)
 {
@@ -96,6 +89,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 		return iDamage;
 	}
 
+	// For reliable damage calculation we work with the total damage which is damage on HP+Shield+Armor
 	iDamage += ArmorMitigation;
 
 	`Log("");
@@ -216,6 +210,10 @@ private function CalculateReliableDamage(AbilityGameStateContext AbilityContext,
 	local array<float> PlusOneDamage, ZeroPlusOne;
 	ZeroPlusOne.Length = 0;
 
+	// In case input is non-zero
+	fDamage = 0;
+	fArmorMitigation = 0;
+
 	iShield = AbilityContext.TargetShield;
 	iArmor = AbilityContext.TargetArmor;
 
@@ -245,37 +243,32 @@ private function CalculateReliableDamage(AbilityGameStateContext AbilityContext,
 		LogHitChance("HitChance:", fHitChance);
 	}
 
-	if(Configuration.AdjustCriticalHits) fHitOnlyChance -= fCritChance;
-	if(Configuration.AdjustGrazeHits) fHitOnlyChance -= fGrazeChance;
+	if(Configuration.AdjustCriticalHits) fHitOnlyChance = FMax(0, fHitOnlyChance - fCritChance);
+	if(Configuration.AdjustGrazeHits) fHitOnlyChance = FMax(0, fHitOnlyChance - fGrazeChance);
 
-	if(fHitOnlyChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Hit", fHitOnlyChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(fMissChance > 0 && iDamageOnMiss > 0) ComputeExpectedValues(CalculateReliableDamageValues("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustCriticalHits && fCritChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
-	if(Configuration.AdjustGrazeHits && fGrazeChance > 0) ComputeExpectedValues(CalculateReliableDamageValues("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, bWriteToLog), fDamage, fArmorMitigation);
+	CalculateReliableDamageValues("Hit", fHitOnlyChance, iDamageOnHit, PlusOneDamage, iShield, iArmor, fDamage, fArmorMitigation, bWriteToLog);
+	CalculateReliableDamageValues("Miss", fMissChance, iDamageOnMiss, ZeroPlusOne, iShield, iArmor, fDamage, fArmorMitigation, bWriteToLog);
+	if(Configuration.AdjustCriticalHits) CalculateReliableDamageValues("Crit", fCritChance, iDamageOnHit + iDamageOnCrit, PlusOneDamage, iShield, iArmor, fDamage, fArmorMitigation, bWriteToLog);
+	if(Configuration.AdjustGrazeHits) CalculateReliableDamageValues("Graze", fGrazeChance, iDamageOnHit * GRAZE_DMG_MULT, PlusOneDamage, iShield, iArmor, fDamage, fArmorMitigation, bWriteToLog);
 }
 
-private function ComputeExpectedValues(array<ReliableDamageValue> DamageValues, out float fDamage, out float fArmorMitigation)
+private function CalculateReliableDamageValues(string HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, out float fDamage, out float fArmorMitigation, optional bool bWriteToLog = false)
 {
-	local ReliableDamageValue DamageValue;
-
-	foreach DamageValues(DamageValue)
-	{
-		fDamage += DamageValue.Damage * DamageValue.HitChance;
-		fArmorMitigation += DamageValue.ArmorMitigation * DamageValue.HitChance;
-	}
-}
-
-private function array<ReliableDamageValue> CalculateReliableDamageValues(string HitResult, float fHitChance, int iDamage, array<float> PlusOneDamage, int iShield, int iArmor, optional bool bWriteToLog = false)
-{
-	local array<ReliableDamageValue> DamageValues;
 	local int i, j, iPlusOneDamage;
 	local float fDamageChance, fPlusOneChance;
 	local bool bIsOn;
-	local ReliableDamageValue DamageValue;
+
+	if(fHitChance <= 0 || iDamage <= 0) return; // This will never add anything to fDamage or fArmorMitigation
+
+	if(bWriteToLog)
+	{
+		`Log("");
+		`Log("===" @ Round(fHitChance * 100) $ "%" @ "|" @ HitResult @ "|" @ iDamage @ "dmg" @ "===");
+	}
 
 	if(!Configuration.AdjustPlusOne || PlusOneDamage.Length == 0)
 	{
-		DamageValues.AddItem(GetDamageValue(iDamage, iShield, iArmor, fHitChance));
+		AddReliableDamageValue(iDamage, iShield, iArmor, fHitChance, fDamage, fArmorMitigation, bWriteToLog);
 	}
 	else
 	{
@@ -299,38 +292,25 @@ private function array<ReliableDamageValue> CalculateReliableDamageValues(string
 		        iPlusOneDamage += bIsOn ? 1 : 0;
 		    }
 
-			DamageValue = GetDamageValue(iDamage + iPlusOneDamage, iShield, iArmor, fDamageChance);
-			DamageValues.AddItem(DamageValue);
+			AddReliableDamageValue(iDamage + iPlusOneDamage, iShield, iArmor, fDamageChance, fDamage, fArmorMitigation, bWriteToLog);
 		}
 	}
-
-	if(bWriteToLog)
-	{
-		`Log("");
-		`Log("===" @ Round(fHitChance * 100) $ "%" @ "|" @ HitResult @ "|" @ iDamage @ "dmg" @ "===");
-
-		foreach DamageValues(DamageValue)
-		{
-			`Log("+" $ RoundFloat(DamageValue.Damage * DamageValue.HitChance) @ "(" $ RoundFloat(DamageValue.HitChance) @ "*" @ DamageValue.Damage $ ")");
-		}
-	}
-
-	return DamageValues;
 }
 
-private function ReliableDamageValue GetDamageValue(int iDamage, int iShield, int iArmor, float fHitChance)
+private function AddReliableDamageValue(int iDamage, int iShield, int iArmor, float fHitChance, out float fDamage, out float fArmorMitigation, optional bool bWriteToLog = false)
 {
 	local int iTotalDamage, iArmorMitigation;
-	local ReliableDamageValue DamageValue;
 
 	iArmorMitigation = Clamp(iDamage - iShield, 0, iArmor);
 	iTotalDamage = Max(0, iDamage - iArmorMitigation);
 
-	DamageValue.Damage = iTotalDamage;
-	DamageValue.ArmorMitigation = iArmorMitigation;
-	DamageValue.HitChance = fHitChance;
+	fArmorMitigation += fHitChance * iArmorMitigation;
+	fDamage += fHitChance * iTotalDamage;
 
-	return DamageValue;
+	if(bWriteToLog)
+	{
+		`Log("+" $ RoundFloat(fHitChance * iTotalDamage) @ "(" $ RoundFloat(fHitChance) @ "*" @ iTotalDamage $ ")");
+	}
 }
 
 simulated function bool PlusOneDamage(int Chance)
