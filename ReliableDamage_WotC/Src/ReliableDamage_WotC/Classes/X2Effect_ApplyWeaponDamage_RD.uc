@@ -73,7 +73,7 @@ simulated function bool ModifyDamageValue(out WeaponDamageValue DamageValue, Dam
 
 simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEffectParameters, out int ArmorMitigation, out int NewRupture, out int NewShred, out array<Name> AppliedDamageTypes, out int bAmmoIgnoresShields, out int bFullyImmune, out array<DamageModifierInfo> SpecialDamageMessages, optional XComGameState NewGameState)
 {
-	local int iDamage, iRupture, iShred;
+	local int iDamage, iRupture, iShred, iArmor, iShield;
 	local float fHitChance, fDamage, fArmorMitigation, fShred, fRupture;
 	local AbilityGameStateContext AbilityContext;
 
@@ -97,6 +97,8 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	`Log("");
 
 	AbilityContext = GetAbilityContext(ApplyEffectParameters.AbilityStateObjectRef, ApplyEffectParameters.TargetStateObjectRef, NewGameState);
+	iArmor = AbilityContext.TargetArmor;
+	iShield = AbilityContext.TargetShield;
 
 	CalculateReliableDamage(AbilityContext, iDamage, fDamage, fArmorMitigation, fHitChance, true);
 
@@ -104,11 +106,17 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 	fShred = fHitChance * iShred;
 
 	iDamage = RollForInt(fDamage);
-	// Armor mitigation is related to damage, we do not roll separately for it.
-	ArmorMitigation = iDamage > fDamage ? FFloor(fArmorMitigation) : FCeil(fArmorMitigation);
-	// We do roll for Shred but it can never exceed the armor mitigation: it is part of it.
-	NewShred = Min(RollForInt(fShred), ArmorMitigation);
 	NewRupture = RollForInt(fRupture);
+	NewShred = RollForInt(fShred);
+
+	// For Armor Mitigation we consider some special scenarios rather than do a plain roll.
+	// 1) If any damage is applied to HP all Armor must have been used for mitigation.
+	// 2) If Shield > Damage we know for sure Armor mitigates 0
+	// 3) Other cases: roll for Armor mitigation but make sure rolled Shred can be applied.
+	ArmorMitigation = iDamage > iShield ? iArmor : iShield > iDamage ? 0 : Max(NewShred, RollForInt(fArmorMitigation));
+
+	// Shred can never exceed Armor Mitigation
+	NewShred = Min(ArmorMitigation, NewShred);
 
 	`Log("");
 	`Log("Damage:" @ RoundFloat(fDamage) @ "=>" @ iDamage);
@@ -125,7 +133,7 @@ simulated function int CalculateDamageAmount(const out EffectAppliedData ApplyEf
 simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameState_Ability AbilityState, bool bAsPrimaryTarget, out WeaponDamageValue MinDamagePreview, out WeaponDamageValue MaxDamagePreview, out int AllowsShield)
 {
 	local float fHitChance, fMinDamage, fMaxDamage, fMinArmorMitigation, fMaxArmorMitigation;
-	local int iMinDamage, iMaxDamage, iRuptureDamage, iShield, iArmor, iMinArmorMitigation, iMaxArmorMitigation;
+	local int iMinDamage, iMaxDamage, iMinShred, iMaxShred, iRuptureDamage, iShield, iArmor, iMinArmorMitigation, iMaxArmorMitigation;
 	local array<float> PlusOneDamage;
 	local AbilityGameStateContext AbilityContext;
 
@@ -160,8 +168,16 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	iMinDamage = FFloor(fMinDamage);
 	iMaxDamage = FCeil(fMaxDamage);
 
-	iMinArmorMitigation = fMinDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FFloor(fMinArmorMitigation) : FCeil(fMinArmorMitigation);
-	iMaxArmorMitigation = fMaxDamage > iShield ? iArmor : iMinDamage == iMaxDamage ? FCeil(fMaxArmorMitigation) : FFloor(fMaxArmorMitigation);
+	iMinShred = FFloor(fHitChance * MinDamagePreview.Shred);
+	iMaxShred = FCeil(fHitChance * MaxDamagePreview.Shred);
+
+	// Unless Shield absorbs all damage Armor Mitigation will be at least the Shred amount
+	iMinArmorMitigation = iMinDamage > iShield ? iArmor : iShield > iMinDamage ? 0 : Max(iMinShred, FFloor(fMinArmorMitigation));
+	iMaxArmorMitigation = iMaxDamage > iShield ? iArmor : iShield > iMaxDamage ? 0 : Max(iMaxShred, FCeil(fMaxArmorMitigation));
+
+	// Shred can never exceed Armor Mitigation
+	iMinShred = Min(iMinArmorMitigation, iMinShred);
+	iMaxShred = Min(iMaxArmorMitigation, iMaxShred);
 
 	// Damage
 	MinDamagePreview.Damage = iMinDamage + iMinArmorMitigation - iRuptureDamage;
@@ -172,8 +188,8 @@ simulated function GetDamagePreview(StateObjectReference TargetRef, XComGameStat
 	MaxDamagePreview.Rupture = FCeil(fHitChance * MaxDamagePreview.Rupture);
 
 	// Shred
-	MinDamagePreview.Shred = FFloor(fHitChance * MinDamagePreview.Shred);
-	MaxDamagePreview.Shred = FCeil(fHitChance * MaxDamagePreview.Shred);
+	MinDamagePreview.Shred = iMinShred;
+	MaxDamagePreview.Shred = iMaxShred;
 }
 
 simulated protected function OnEffectAdded(const out EffectAppliedData ApplyEffectParameters, XComGameState_BaseObject kNewTargetState, XComGameState NewGameState, XComGameState_Effect NewEffectState)
