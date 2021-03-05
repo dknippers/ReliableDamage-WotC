@@ -503,6 +503,8 @@ private function int GetArmorMitigation(XComGameState_Ability Ability, XComGameS
 	local ArmorMitigationResults ArmorMitigationResults;
 	local int iArmorMitigation, iArmorPiercing;
 
+	if(bIgnoreArmor) return 0;
+
 	Damageable = Damageable(TargetObject);
 	if(Damageable == None) return 0;
 
@@ -564,8 +566,8 @@ private function AbilityGameStateContext GetAbilityContext(StateObjectReference 
 
 	if(Context.TargetUnit != None)
 	{
-		Context.TargetShield = Context.TargetUnit.GetCurrentStat(eStat_ShieldHP);
-		Context.TargetArmor = bIgnoreArmor ? 0 : GetArmorMitigation(Ability, Context.SourceUnit, Context.TargetObject, Context.DamageInfo);
+		Context.TargetShield = (Context.DamageInfo.bDoesDamageIgnoreShields || bBypassShields) ? 0.0f : Context.TargetUnit.GetCurrentStat(eStat_ShieldHP);
+		Context.TargetArmor = GetArmorMitigation(Ability, Context.SourceUnit, Context.TargetObject, Context.DamageInfo);
 	}
 
 	return Context;
