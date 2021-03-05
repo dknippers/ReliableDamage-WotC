@@ -67,6 +67,22 @@ private function bool ShouldChangeToHit(StateObjectReference TargetRef, EAbility
 	}
 }
 
+function int GetShotBreakdown(XComGameState_Ability kAbility, AvailableTarget kTarget, optional out ShotBreakdown m_ShotBreakdown, optional bool bDebugLog = false)
+{
+	local int HitChance;
+	local ShotModifierInfo ModifierInfo;
+     
+	HitChance = super.GetShotBreakdown(kAbility, kTarget, m_ShotBreakdown, bDebugLog);
+ 
+	ModifierInfo.Value = 0;
+	ModifierInfo.Reason = "85% | 4-5 | 15%";
+	ModifierInfo.ModType = eHit_Success;
+ 
+	m_ShotBreakdown.Modifiers.AddItem(ModifierInfo);
+ 
+	return HitChance;
+}
+
 defaultproperties
 {
 	Begin Object Class=Configuration Name=Configuration
