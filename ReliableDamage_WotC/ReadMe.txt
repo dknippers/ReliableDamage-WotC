@@ -17,11 +17,8 @@ The original mod for XCOM 2 without War of the Chosen can be found [url=https://
 [/list]
 [*] Critical damage / Graze shots are removed but their effects are incorporated in every shot instead (i.e., 25% chance to crit for an additional 4 damage would simply do +1 damage on each shot instead). This is configurable, both types of shots can be restored to normal if desired.
 [*] Abilities like Viper's Bind and Skirimisher's Justice are not influenced and can still miss of course.
-[*] All Weapon spread is removed (can be restored in via config)
-[list]
-[*] Spread means a weapon will not do exactly X damage but can do anywhere from X-S to X+S damage where S is the spread.
-[*] Spread only increases variance and does not impact the expected value of a shot so can be safely removed for more reliable damage.
-[/list]
+[*] Abilities like Untouchable and Lightning Reflexes will still cause shots to miss.
+[*] Ammo effects such as Dragon Rounds' burning effect are applied with a probability equal to the original hit chance, rather than on every hit (because that is 100% in this mod). Can be controlled in config.
 [/list]
 
 [h1]Updates[/h1]
