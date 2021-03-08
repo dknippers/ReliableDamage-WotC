@@ -685,14 +685,12 @@ simulated function AddX2ActionsForVisualization(XComGameState VisualizeGameState
 		ApplyWeaponDamageAction = X2Action_ApplyWeaponDamageToUnit(Action);
 		if(ApplyWeaponDamageAction == None) continue;
 
-		if(X2Effect_ApplyWeaponDamage_RD(ApplyWeaponDamageAction.OriginatingEffect) == None)
+		if(ApplyWeaponDamageAction.OriginatingEffect == Original)
 		{
 			// Remove any instances of X2Action_ApplyWeaponDamageToUnit that were added by
-			// an X2Effect that is not X2Effect_ApplyWeaponDamage_RD.
-			// In practice this is to remove Actions added by the X2Effect_ApplyWeaponDamage
-			// that we have replaced but could not remove from the list of TargetEffects.
+			// the X2Effect_ApplyWeaponDamage instance (= Original) that we have replaced with the current class.
 			// This fix is necessary to prevent a RedScreen during Sharpshooter's Faceoff ability.
-			VisualizationMgr.DisconnectAction(Action);
+			VisualizationMgr.DestroySubtree(Action, true);
 		}
 	}
 
