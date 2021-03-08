@@ -99,7 +99,7 @@ private function bool ReplaceWeaponEffects(X2AbilityTemplate AbilityTemplate, bo
 		if(!TargetEffect.bApplyOnHit || !TargetEffect.bAppliesDamage) continue;
 
 		ApplyWeaponDamage = X2Effect_ApplyWeaponDamage(TargetEffect);
-		if(ApplyWeaponDamage == None || ApplyWeaponDamage.bIgnoreBaseDamage) continue;
+		if(ApplyWeaponDamage == None) continue;
 
 		ApplyWeaponDamage_RD = X2Effect_ApplyWeaponDamage_RD(TargetEffect);
 		if(ApplyWeaponDamage_RD != None) continue;
