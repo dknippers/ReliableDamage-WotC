@@ -27,9 +27,19 @@ function Clone(X2AbilityToHitCalc_StandardAim Source)
 function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarget, out AbilityResultContext ResultContext)
 {
 	local int i;
+	local XComGameState_Unit TargetState;
 
 	// Default behavior
 	super.RollForAbilityHit(kAbility, kTarget, ResultContext);
+
+	TargetState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(kTarget.PrimaryTarget.ObjectID));
+	if(TargetState != None && TargetState.bLightningReflexes && ResultContext.HitResult != eHit_LightningReflexes)
+	{
+		// The game will not set HitResult to eHit_LightningReflexes if the original hit roll was a miss.
+		// In that case it will simply be set to eHit_Miss which we will then change to a hit but we should not.
+		// We will fix that here. Note we do not alter the MultiTargetHitResults for this, it is not clear to us how that works.
+		ResultContext.HitResult = eHit_LightningReflexes;
+	}
 
 	// Single Target
 	if(ShouldChangeToHit(kTarget.PrimaryTarget, ResultContext.HitResult))
