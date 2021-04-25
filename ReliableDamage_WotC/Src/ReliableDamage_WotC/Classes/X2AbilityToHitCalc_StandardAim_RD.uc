@@ -31,8 +31,6 @@ function RollForAbilityHit(XComGameState_Ability kAbility, AvailableTarget kTarg
 	// Default behavior
 	super.RollForAbilityHit(kAbility, kTarget, ResultContext);
 
-	assert(kTarget.AdditionalTargets.Length == ResultContext.MultiTargetHitResults.Length);
-
 	// Single Target
 	if(ShouldChangeToHit(kTarget.PrimaryTarget, ResultContext.HitResult))
 	{
